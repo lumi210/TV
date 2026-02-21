@@ -1,0 +1,127 @@
+// 全局样式变量
+$primary-color: #ff6b6b;
+$secondary-color: #4ecdc4;
+$background-color: #0f0f1a;
+$card-background: #1a1a2e;
+$border-color: #2d2d44;
+$text-color: #ffffff;
+$text-secondary: #888888;
+$text-muted: #555555;
+
+// 主题色
+$theme-colors: (
+  primary: $primary-color,
+  secondary: $secondary-color,
+  background: $background-color,
+  card: $card-background,
+  border: $border-color
+);
+
+// 间距
+$spacing-xs: 8rpx;
+$spacing-sm: 16rpx;
+$spacing-md: 24rpx;
+$spacing-lg: 32rpx;
+$spacing-xl: 48rpx;
+
+// 圆角
+$radius-sm: 8rpx;
+$radius-md: 12rpx;
+$radius-lg: 16rpx;
+$radius-xl: 24rpx;
+
+// 字体大小
+$font-xs: 20rpx;
+$font-sm: 24rpx;
+$font-md: 28rpx;
+$font-lg: 32rpx;
+$font-xl: 36rpx;
+$font-xxl: 44rpx;
+
+// 卡片样式
+@mixin card {
+  background-color: $card-background;
+  border-radius: $radius-lg;
+  padding: $spacing-md;
+}
+
+// 文字截断
+@mixin text-ellipsis($lines: 1) {
+  @if $lines == 1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  } @else {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: $lines;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+// 安全区域
+.safe-area-bottom {
+  padding-bottom: constant(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+// 按钮样式
+.btn-primary {
+  background: linear-gradient(135deg, $primary-color, #ff8e8e);
+  color: $text-color;
+  border-radius: $radius-lg;
+  padding: $spacing-md $spacing-lg;
+  font-size: $font-md;
+  text-align: center;
+  border: none;
+
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.btn-secondary {
+  background-color: $card-background;
+  color: $text-color;
+  border-radius: $radius-lg;
+  padding: $spacing-md $spacing-lg;
+  font-size: $font-md;
+  text-align: center;
+  border: 1rpx solid $border-color;
+
+  &:active {
+    background-color: $border-color;
+  }
+}
+
+// 输入框样式
+.input-field {
+  background-color: $card-background;
+  border-radius: $radius-md;
+  padding: $spacing-md;
+  font-size: $font-md;
+  color: $text-color;
+  border: 1rpx solid $border-color;
+
+  &::placeholder {
+    color: $text-muted;
+  }
+}
+
+// 标签样式
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: $spacing-xs $spacing-sm;
+  font-size: $font-xs;
+  border-radius: $radius-sm;
+  background-color: rgba($primary-color, 0.2);
+  color: $primary-color;
+}
+
+// 评分标签
+.rating-tag {
+  background-color: rgba(#f5a623, 0.2);
+  color: #f5a623;
+}
