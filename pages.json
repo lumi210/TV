@@ -9,6 +9,10 @@
       "style": { "navigationBarTitleText": "搜索", "navigationStyle": "custom" }
     },
     {
+      "path": "pages/more/more",
+      "style": { "navigationBarTitleText": "更多", "navigationStyle": "custom" }
+    },
+    {
       "path": "pages/play/play",
       "style": { "navigationBarTitleText": "播放", "navigationStyle": "custom" }
     },
@@ -46,7 +50,7 @@
     },
     {
       "path": "pages/points/points",
-      "style": { "navigationBarTitleText": "我的积分", "navigationStyle": "custom" }
+      "style": { "navigationBarTitleText": "积分兑换", "navigationStyle": "custom" }
     },
     {
       "path": "pages/invitation/invitation",

@@ -14,51 +14,100 @@
       :refresher-triggered="refreshing"
       @refresherrefresh="onRefresh"
     >
+      <!-- 热门电影 -->
       <view class="section" v-if="movies.length > 0">
         <view class="section-header">
           <text class="section-title">热门电影</text>
+          <text class="section-more" @click="goMore('movie', '热门电影')">更多 &#10095;</text>
         </view>
         <scroll-view scroll-x class="scroll-x">
           <view class="movie-list">
             <view class="movie-card" v-for="(item, index) in movies" :key="index" @click="searchAndPlay(item)">
-              <image class="movie-cover" :src="item.poster" mode="aspectFill" lazy-load />
+              <image 
+                class="movie-cover" 
+                :src="getPoster(item)" 
+                mode="aspectFill" 
+                lazy-load
+                @error="onImageError($event, item)"
+              />
               <view class="movie-info">
-                <text class="movie-title">{{ item.title }}</text>
-                <text class="movie-rate" v-if="item.rate">{{ item.rate }}分</text>
+                <text class="movie-title">{{ item.title || item.name }}</text>
+                <text class="movie-rate" v-if="item.rate || item.rating">{{ item.rate || item.rating }}分</text>
               </view>
             </view>
           </view>
         </scroll-view>
       </view>
 
+      <!-- 热门电视剧 -->
       <view class="section" v-if="tvShows.length > 0">
         <view class="section-header">
           <text class="section-title">热门电视剧</text>
+          <text class="section-more" @click="goMore('tv', '热门电视剧')">更多 &#10095;</text>
         </view>
         <scroll-view scroll-x class="scroll-x">
           <view class="movie-list">
             <view class="movie-card" v-for="(item, index) in tvShows" :key="index" @click="searchAndPlay(item)">
-              <image class="movie-cover" :src="item.poster" mode="aspectFill" lazy-load />
+              <image 
+                class="movie-cover" 
+                :src="getPoster(item)" 
+                mode="aspectFill" 
+                lazy-load
+                @error="onImageError($event, item)"
+              />
               <view class="movie-info">
-                <text class="movie-title">{{ item.title }}</text>
-                <text class="movie-rate" v-if="item.rate">{{ item.rate }}分</text>
+                <text class="movie-title">{{ item.title || item.name }}</text>
+                <text class="movie-rate" v-if="item.rate || item.rating">{{ item.rate || item.rating }}分</text>
               </view>
             </view>
           </view>
         </scroll-view>
       </view>
 
+      <!-- 热门综艺 -->
       <view class="section" v-if="varietyShows.length > 0">
         <view class="section-header">
           <text class="section-title">热门综艺</text>
+          <text class="section-more" @click="goMore('variety', '热门综艺')">更多 &#10095;</text>
         </view>
         <scroll-view scroll-x class="scroll-x">
           <view class="movie-list">
             <view class="movie-card" v-for="(item, index) in varietyShows" :key="index" @click="searchAndPlay(item)">
-              <image class="movie-cover" :src="item.poster" mode="aspectFill" lazy-load />
+              <image 
+                class="movie-cover" 
+                :src="getPoster(item)" 
+                mode="aspectFill" 
+                lazy-load
+                @error="onImageError($event, item)"
+              />
               <view class="movie-info">
-                <text class="movie-title">{{ item.title }}</text>
-                <text class="movie-rate" v-if="item.rate">{{ item.rate }}分</text>
+                <text class="movie-title">{{ item.title || item.name }}</text>
+                <text class="movie-rate" v-if="item.rate || item.rating">{{ item.rate || item.rating }}分</text>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+
+      <!-- 热门动漫 -->
+      <view class="section" v-if="animes.length > 0">
+        <view class="section-header">
+          <text class="section-title">热门动漫</text>
+          <text class="section-more" @click="goMore('anime', '热门动漫')">更多 &#10095;</text>
+        </view>
+        <scroll-view scroll-x class="scroll-x">
+          <view class="movie-list">
+            <view class="movie-card" v-for="(item, index) in animes" :key="index" @click="searchAndPlay(item)">
+              <image 
+                class="movie-cover" 
+                :src="getPoster(item)" 
+                mode="aspectFill" 
+                lazy-load
+                @error="onImageError($event, item)"
+              />
+              <view class="movie-info">
+                <text class="movie-title">{{ item.title || item.name }}</text>
+                <text class="movie-rate" v-if="item.rate || item.rating">{{ item.rate || item.rating }}分</text>
               </view>
             </view>
           </view>
@@ -87,7 +136,14 @@ export default {
       refreshing: false,
       movies: [],
       tvShows: [],
-      varietyShows: []
+      varietyShows: [],
+      animes: [],
+      pageStart: {
+        movie: 0,
+        tv: 0,
+        variety: 0,
+        anime: 0
+      }
     }
   },
   onShow() {
@@ -97,16 +153,32 @@ export default {
     }
   },
   methods: {
+    getPoster(item) {
+      return item.poster || item.cover || item.pic || '/static/default-cover.png'
+    },
+    
+    onImageError(e, item) {
+      console.log('image error:', item.title)
+    },
+    
     goLogin() {
       uni.navigateTo({ url: '/pages/login/login' })
     },
+    
     goSearch() {
       uni.navigateTo({ url: '/pages/search/search' })
     },
+    
+    goMore(type, title) {
+      uni.navigateTo({ 
+        url: '/pages/more/more?type=' + type + '&title=' + encodeURIComponent(title)
+      })
+    },
+    
     searchAndPlay(item) {
       uni.showLoading({ title: '搜索中...' })
       uni.request({
-        url: '/api/search?q=' + encodeURIComponent(item.title),
+        url: '/api/search?q=' + encodeURIComponent(item.title || item.name),
         withCredentials: true,
         success: (res) => {
           uni.hideLoading()
@@ -125,44 +197,99 @@ export default {
         }
       })
     },
+    
     loadData() {
-      this.loadMovies()
-      this.loadTvShows()
-      this.loadVariety()
+      this.loading = true
+      Promise.all([
+        this.loadMovies(),
+        this.loadTvShows(),
+        this.loadVariety(),
+        this.loadAnime()
+      ]).finally(() => {
+        this.loading = false
+      })
     },
+    
     loadMovies() {
-      uni.request({
-        url: '/api/douban?type=movie&tag=%E7%83%AD%E9%97%A8&pageStart=0&pageSize=12',
-        withCredentials: true,
-        success: (res) => {
-          if (res.data && res.data.list) {
-            this.movies = res.data.list
-          }
-        }
+      return new Promise((resolve) => {
+        uni.request({
+          url: '/api/douban?type=movie&tag=%E7%83%AD%E9%97%A8&pageStart=0&pageSize=12',
+          withCredentials: true,
+          success: (res) => {
+            if (res.data && res.data.list) {
+              this.movies = res.data.list.map(item => ({
+                id: item.id,
+                title: item.title,
+                poster: item.poster,
+                rate: item.rate
+              }))
+            }
+          },
+          complete: resolve
+        })
       })
     },
+    
     loadTvShows() {
-      uni.request({
-        url: '/api/douban?type=tv&tag=%E7%83%AD%E9%97%A8&pageStart=0&pageSize=12',
-        withCredentials: true,
-        success: (res) => {
-          if (res.data && res.data.list) {
-            this.tvShows = res.data.list
-          }
-        }
+      return new Promise((resolve) => {
+        uni.request({
+          url: '/api/douban?type=tv&tag=%E7%83%AD%E9%97%A8&pageStart=0&pageSize=12',
+          withCredentials: true,
+          success: (res) => {
+            if (res.data && res.data.list) {
+              this.tvShows = res.data.list.map(item => ({
+                id: item.id,
+                title: item.title,
+                poster: item.poster,
+                rate: item.rate
+              }))
+            }
+          },
+          complete: resolve
+        })
       })
     },
+    
     loadVariety() {
-      uni.request({
-        url: '/api/douban?type=tv&tag=%E7%BB%BC%E8%89%BA&pageStart=0&pageSize=12',
-        withCredentials: true,
-        success: (res) => {
-          if (res.data && res.data.list) {
-            this.varietyShows = res.data.list
-          }
-        }
+      return new Promise((resolve) => {
+        uni.request({
+          url: '/api/douban?type=tv&tag=%E7%BB%BC%E8%89%BA&pageStart=0&pageSize=12',
+          withCredentials: true,
+          success: (res) => {
+            if (res.data && res.data.list) {
+              this.varietyShows = res.data.list.map(item => ({
+                id: item.id,
+                title: item.title,
+                poster: item.poster,
+                rate: item.rate
+              }))
+            }
+          },
+          complete: resolve
+        })
       })
     },
+    
+    loadAnime() {
+      return new Promise((resolve) => {
+        uni.request({
+          url: '/api/douban?type=tv&tag=%E5%8A%A8%E6%BC%AB&pageStart=0&pageSize=12',
+          withCredentials: true,
+          success: (res) => {
+            if (res.data && res.data.list) {
+              this.animes = res.data.list.map(item => ({
+                id: item.id,
+                title: item.title,
+                poster: item.poster,
+                rate: item.rate
+              }))
+            }
+          },
+          complete: resolve
+        })
+      })
+    },
+    
     onRefresh() {
       this.refreshing = true
       this.loadData()
@@ -223,6 +350,9 @@ export default {
 }
 
 .section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 16rpx 24rpx;
 }
 
@@ -230,6 +360,12 @@ export default {
   color: $color-text;
   font-size: 32rpx;
   font-weight: bold;
+}
+
+.section-more {
+  font-size: 26rpx;
+  color: $color-text-muted;
+  padding: 8rpx 16rpx;
 }
 
 .scroll-x {
@@ -294,35 +430,18 @@ export default {
 
 /* 响应式适配 */
 @media screen and (max-width: 375px) {
-  .movie-card {
-    width: 160rpx;
-  }
-  .movie-cover {
-    width: 160rpx;
-    height: 224rpx;
-  }
+  .movie-card { width: 160rpx; }
+  .movie-cover { width: 160rpx; height: 224rpx; }
 }
 
 @media screen and (min-width: 414px) {
-  .movie-card {
-    width: 220rpx;
-  }
-  .movie-cover {
-    width: 220rpx;
-    height: 308rpx;
-  }
+  .movie-card { width: 220rpx; }
+  .movie-cover { width: 220rpx; height: 308rpx; }
 }
 
 @media screen and (min-width: 768px) {
-  .movie-card {
-    width: 240rpx;
-  }
-  .movie-cover {
-    width: 240rpx;
-    height: 336rpx;
-  }
-  .movie-list {
-    gap: 24rpx;
-  }
+  .movie-card { width: 240rpx; }
+  .movie-cover { width: 240rpx; height: 336rpx; }
+  .movie-list { gap: 24rpx; }
 }
 </style>
