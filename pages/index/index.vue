@@ -31,7 +31,7 @@
         </view>
         <scroll-view scroll-x class="scroll-x">
           <view class="movie-list">
-            <view class="movie-card" v-for="(item, index) in tvShows" :key="index" @click="goDetail(item, 'tv')">
+            <view class="movie-card" v-for="(item, index) in tvShows" :key="index" @click="goDetail(item)">
               <image class="movie-cover" :src="item.poster || item.cover" mode="aspectFill" />
               <view class="movie-info">
                 <text class="movie-title">{{ item.title }}</text>
@@ -48,7 +48,7 @@
         </view>
         <scroll-view scroll-x class="scroll-x">
           <view class="movie-list">
-            <view class="movie-card" v-for="(item, index) in varietyShows" :key="index" @click="goDetail(item, 'tv')">
+            <view class="movie-card" v-for="(item, index) in varietyShows" :key="index" @click="goDetail(item)">
               <image class="movie-cover" :src="item.poster || item.cover" mode="aspectFill" />
               <view class="movie-info">
                 <text class="movie-title">{{ item.title }}</text>
@@ -94,9 +94,9 @@ export default {
     goSearch() {
       uni.navigateTo({ url: '/pages/search/search' })
     },
-    goDetail(item, type = 'movie') {
+    goDetail(item) {
       uni.navigateTo({
-        url: '/pages/play/play?id=' + item.id + '&type=' + type + '&title=' + encodeURIComponent(item.title)
+        url: '/pages/play/play?id=' + item.id + '&source=' + (item.source || '') + '&title=' + encodeURIComponent(item.title) + '&poster=' + encodeURIComponent(item.poster || '')
       })
     },
     loadData() {

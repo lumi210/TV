@@ -18,6 +18,7 @@
           <view class="result-info">
             <text class="result-title">{{ item.name || item.title }}</text>
             <text class="result-actor" v-if="item.actor">{{ item.actor }}</text>
+            <text class="result-source" v-if="item.source">来源: {{ item.sourceName || item.source }}</text>
           </view>
         </view>
       </view>
@@ -59,7 +60,15 @@ export default {
         success: (res) => {
           this.searched = true
           if (res.data && res.data.results) {
-            this.results = res.data.results
+            this.results = res.data.results.map(item => ({
+              id: item.id || item.vod_id,
+              name: item.name || item.title || item.vod_name,
+              title: item.name || item.title || item.vod_name,
+              pic: item.pic || item.poster || item.vod_pic,
+              actor: item.actor || item.vod_actor,
+              source: item.source,
+              sourceName: item.sourceName
+            }))
           }
         },
         complete: () => {
@@ -69,7 +78,7 @@ export default {
     },
     goDetail(item) {
       uni.navigateTo({
-        url: '/pages/play/play?id=' + (item.id || item.vod_id) + '&title=' + encodeURIComponent(item.name || item.title)
+        url: '/pages/play/play?id=' + item.id + '&source=' + (item.source || '') + '&title=' + encodeURIComponent(item.name || item.title) + '&poster=' + encodeURIComponent(item.pic || '')
       })
     }
   }
@@ -160,6 +169,14 @@ export default {
 .result-actor {
   color: #888;
   font-size: 24rpx;
+  display: block;
+}
+
+.result-source {
+  color: #4ecdc4;
+  font-size: 22rpx;
+  margin-top: 8rpx;
+  display: block;
 }
 
 .loading, .empty {
