@@ -1,253 +1,69 @@
 <template>
   <view class="page">
     <view class="header">
-      <view class="back-btn" @click="goBack">
-        <text>&#8592;</text>
-      </view>
+      <text class="back" @click="goBack">&lt;</text>
       <text class="header-title">注册</text>
-      <view class="placeholder"></view>
     </view>
-
     <view class="content">
-      <view class="form-section">
+      <view class="form">
         <view class="form-item">
-          <text class="form-label">用户名</text>
-          <input 
-            class="form-input" 
-            v-model="form.username" 
-            placeholder="请输入用户名"
-            type="text"
-          />
+          <text class="label">用户名</text>
+          <input class="input" v-model="username" placeholder="请输入用户名" />
         </view>
         <view class="form-item">
-          <text class="form-label">密码</text>
-          <input 
-            class="form-input" 
-            v-model="form.password" 
-            placeholder="请输入密码"
-            :password="!showPassword"
-          />
-          <text class="toggle-pwd" @click="showPassword = !showPassword">
-            {{ showPassword ? '&#128065;' : '&#128064;' }}
-          </text>
+          <text class="label">密码</text>
+          <input class="input" v-model="password" placeholder="请输入密码" :password="true" />
         </view>
         <view class="form-item">
-          <text class="form-label">确认密码</text>
-          <input 
-            class="form-input" 
-            v-model="form.confirmPassword" 
-            placeholder="请再次输入密码"
-            :password="!showConfirmPassword"
-          />
-          <text class="toggle-pwd" @click="showConfirmPassword = !showConfirmPassword">
-            {{ showConfirmPassword ? '&#128065;' : '&#128064;' }}
-          </text>
+          <text class="label">确认密码</text>
+          <input class="input" v-model="password2" placeholder="请再次输入密码" :password="true" />
         </view>
-
-        <view class="invite-code">
-          <text class="config-label">邀请码（选填）</text>
-          <input 
-            class="config-input" 
-            v-model="form.inviteCode" 
-            placeholder="请输入邀请码"
-          />
-        </view>
-
-        <button class="register-btn" :loading="loading" @click="handleRegister">
-          注册
-        </button>
-
-        <view class="login-link">
-          <text>已有账号？</text>
-          <text class="link" @click="goLogin">立即登录</text>
+        <button class="btn" @click="register">注册</button>
+        <view class="link" @click="goLogin">
+          <text>已有账号？去登录</text>
         </view>
       </view>
     </view>
   </view>
 </template>
 
-<script setup>
-import { ref } from 'vue'
-import { useUserStore } from '../../store/user'
-
-const userStore = useUserStore()
-
-const loading = ref(false)
-const showPassword = ref(false)
-const showConfirmPassword = ref(false)
-const form = ref({
-  username: '',
-  password: '',
-  confirmPassword: '',
-  inviteCode: ''
-})
-
-const handleRegister = async () => {
-  if (!form.value.username) {
-    uni.showToast({ title: '请输入用户名', icon: 'none' })
-    return
-  }
-  if (!form.value.password) {
-    uni.showToast({ title: '请输入密码', icon: 'none' })
-    return
-  }
-  if (form.value.password !== form.value.confirmPassword) {
-    uni.showToast({ title: '两次密码不一致', icon: 'none' })
-    return
-  }
-
-  loading.value = true
-  try {
-    const result = await userStore.register({
-      username: form.value.username,
-      password: form.value.password,
-      inviteCode: form.value.inviteCode
-    })
-    
-    if (result.success) {
-      uni.showToast({ title: '注册成功', icon: 'success' })
-      setTimeout(() => {
-        uni.navigateTo({ url: '/pages/login/login' })
-      }, 1000)
-    } else {
-      uni.showToast({ title: result.message || '注册失败', icon: 'none' })
+<script>
+export default {
+  data() {
+    return {
+      username: '',
+      password: '',
+      password2: ''
     }
-  } catch (error) {
-    uni.showToast({ title: '注册失败', icon: 'none' })
-  } finally {
-    loading.value = false
+  },
+  methods: {
+    goBack() { uni.navigateBack() },
+    goLogin() { uni.navigateTo({ url: '/pages/login/login' }) },
+    async register() {
+      if (!this.username || !this.password) {
+        uni.showToast({ title: '请填写完整', icon: 'none' })
+        return
+      }
+      if (this.password !== this.password2) {
+        uni.showToast({ title: '密码不一致', icon: 'none' })
+        return
+      }
+      uni.showToast({ title: '请联系管理员注册', icon: 'none' })
+    }
   }
-}
-
-const goBack = () => {
-  uni.navigateBack()
-}
-
-const goLogin = () => {
-  uni.navigateTo({ url: '/pages/login/login' })
 }
 </script>
 
-<style lang="scss" scoped>
-.page {
-  min-height: 100vh;
-  background-color: #0f0f1a;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 24rpx;
-  padding-top: calc(24rpx + constant(safe-area-inset-top));
-  padding-top: calc(24rpx + env(safe-area-inset-top));
-}
-
-.back-btn, .placeholder {
-  width: 64rpx;
-  height: 64rpx;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 36rpx;
-  color: #ffffff;
-}
-
-.header-title {
-  font-size: 36rpx;
-  font-weight: bold;
-  color: #ffffff;
-}
-
-.content {
-  padding: 32rpx;
-}
-
-.form-section {
-  background-color: #1a1a2e;
-  border-radius: 16rpx;
-  padding: 32rpx;
-}
-
-.form-item {
-  margin-bottom: 32rpx;
-  position: relative;
-}
-
-.form-label {
-  font-size: 28rpx;
-  color: #ffffff;
-  display: block;
-  margin-bottom: 16rpx;
-}
-
-.form-input {
-  width: 100%;
-  height: 88rpx;
-  background-color: #0f0f1a;
-  border-radius: 12rpx;
-  padding: 0 24rpx;
-  font-size: 30rpx;
-  color: #ffffff;
-  box-sizing: border-box;
-}
-
-.toggle-pwd {
-  position: absolute;
-  right: 24rpx;
-  bottom: 24rpx;
-  font-size: 36rpx;
-  color: #888888;
-}
-
-.invite-code {
-  margin-bottom: 32rpx;
-}
-
-.config-label {
-  font-size: 24rpx;
-  color: #888888;
-  display: block;
-  margin-bottom: 12rpx;
-}
-
-.config-input {
-  width: 100%;
-  height: 72rpx;
-  background-color: #0f0f1a;
-  border-radius: 12rpx;
-  padding: 0 24rpx;
-  font-size: 26rpx;
-  color: #888888;
-  box-sizing: border-box;
-}
-
-.register-btn {
-  width: 100%;
-  height: 96rpx;
-  background: linear-gradient(135deg, #ff6b6b, #ff8e8e);
-  border-radius: 48rpx;
-  font-size: 32rpx;
-  color: #ffffff;
-  border: none;
-  margin-top: 16rpx;
-  
-  &:active {
-    opacity: 0.8;
-  }
-}
-
-.login-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 32rpx;
-  font-size: 26rpx;
-  color: #888888;
-}
-
-.link {
-  color: #ff6b6b;
-  margin-left: 8rpx;
-}
+<style>
+.page { height: 100vh; background: #0f0f1a; }
+.header { padding: 50rpx 24rpx 24rpx; background: #1a1a2e; display: flex; align-items: center; }
+.back { color: #fff; font-size: 36rpx; margin-right: 16rpx; }
+.header-title { color: #fff; font-size: 36rpx; }
+.form { padding: 24rpx; }
+.form-item { margin-bottom: 24rpx; }
+.label { color: #fff; font-size: 28rpx; display: block; margin-bottom: 8rpx; }
+.input { width: 100%; padding: 24rpx; background: #1a1a2e; border-radius: 12rpx; color: #fff; }
+.btn { width: 100%; padding: 24rpx; background: #ff6b6b; border-radius: 12rpx; color: #fff; font-size: 32rpx; margin-top: 24rpx; }
+.link { text-align: center; margin-top: 24rpx; }
+.link text { color: #ff6b6b; font-size: 26rpx; }
 </style>
