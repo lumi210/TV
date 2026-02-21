@@ -4,19 +4,10 @@ class Request {
   constructor() {
     this.baseUrl = config.baseUrl
     this.timeout = config.timeout
-    this.cookie = ''
   }
 
   setBaseUrl(url) {
     this.baseUrl = url
-  }
-
-  setCookie(cookie) {
-    this.cookie = cookie
-  }
-
-  getCookie() {
-    return this.cookie
   }
 
   request(options = {}) {
@@ -30,16 +21,17 @@ class Request {
         method: options.method || 'GET',
         data: options.data || {},
         timeout: options.timeout || this.timeout,
-        withCredentials: true,
         header: {
           ...config.headers,
           ...(savedCookie ? { 'Cookie': savedCookie } : {}),
           ...options.header
         },
         success: (res) => {
-          const setCookie = res.header['Set-Cookie'] || res.header['set-cookie']
+          const headers = res.header || {}
+          const setCookie = headers['set-cookie'] || headers['Set-Cookie']
+          
           if (setCookie) {
-            let cookieValue = setCookie
+            let cookieValue = ''
             if (Array.isArray(setCookie)) {
               cookieValue = setCookie.map(c => c.split(';')[0]).join('; ')
             } else {
@@ -47,7 +39,7 @@ class Request {
             }
             if (cookieValue.includes('user_auth')) {
               uni.setStorageSync('user_cookie', cookieValue)
-              this.cookie = cookieValue
+              console.log('Cookie saved:', cookieValue.substring(0, 50) + '...')
             }
           }
           
