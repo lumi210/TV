@@ -73,14 +73,14 @@
           <view class="menu-item" @click="goPage('/pages/favorites/favorites')">
             <text>我的收藏</text>
             <view class="item-extra">
-              <text class="item-count">{{ favoriteCount }}</text>
+              <text class="item-count" v-if="favoriteCount > 0">{{ favoriteCount }}</text>
               <text class="arrow">&gt;</text>
             </view>
           </view>
           <view class="menu-item" @click="goPage('/pages/history/history')">
             <text>观看历史</text>
             <view class="item-extra">
-              <text class="item-count">{{ playCount }}</text>
+              <text class="item-count" v-if="playCount > 0">{{ playCount }}</text>
               <text class="arrow">&gt;</text>
             </view>
           </view>
@@ -144,6 +144,7 @@ export default {
         url: '/api/user/my-stats',
         withCredentials: true,
         success: (res) => {
+          console.log('my-stats:', res.data)
           if (res.data && !res.data.error) {
             this.playCount = res.data.totalPlays || 0
           }
@@ -155,19 +156,47 @@ export default {
         url: '/api/points/balance',
         withCredentials: true,
         success: (res) => {
+          console.log('points-balance:', res.data)
           if (res.data && res.data.balance !== undefined) {
             this.points = res.data.balance
           }
         }
       })
       
-      // 加载收藏数
+      // 加载收藏
       uni.request({
         url: '/api/favorites',
         withCredentials: true,
         success: (res) => {
-          if (res.data && res.data.list) {
-            this.favoriteCount = res.data.list.length
+          console.log('favorites:', res.data)
+          if (res.data) {
+            if (Array.isArray(res.data)) {
+              this.favoriteCount = res.data.length
+            } else if (res.data.list) {
+              this.favoriteCount = res.data.list.length
+            } else if (res.data.favorites) {
+              this.favoriteCount = res.data.favorites.length
+            }
+          }
+        }
+      })
+      
+      // 加载观看记录数量
+      uni.request({
+        url: '/api/playrecords',
+        withCredentials: true,
+        success: (res) => {
+          console.log('playrecords:', res.data)
+          if (res.data) {
+            if (Array.isArray(res.data)) {
+              this.playCount = res.data.length
+            } else if (res.data.list) {
+              this.playCount = res.data.list.length
+            } else if (res.data.records) {
+              this.playCount = res.data.records.length
+            } else if (res.data.data && Array.isArray(res.data.data)) {
+              this.playCount = res.data.data.length
+            }
           }
         }
       })
@@ -177,6 +206,7 @@ export default {
         url: '/api/user/cardkey',
         withCredentials: true,
         success: (res) => {
+          console.log('cardkey:', res.data)
           if (res.data && res.data.hasCardKey && res.data.cardKeyInfo) {
             this.cardKeyInfo = res.data.cardKeyInfo
           }
@@ -430,7 +460,6 @@ export default {
   }
 }
 
-/* 响应式适配 - 平板 */
 @media screen and (min-width: 768px) {
   .content {
     max-width: 750rpx;

@@ -10,16 +10,16 @@
     <scroll-view scroll-y class="content">
       <view class="list">
         <view class="item" v-for="(item, index) in list" :key="index" @click="goDetail(item)">
-          <image class="cover" :src="item.cover || item.pic" mode="aspectFill" lazy-load />
+          <image class="cover" :src="getCover(item)" mode="aspectFill" lazy-load />
           <view class="info">
-            <text class="title">{{ item.title || item.name }}</text>
+            <text class="title">{{ getTitle(item) }}</text>
             <view class="meta">
-              <text class="episode" v-if="item.episode">第{{ item.episode }}集</text>
-              <text class="time">{{ formatTime(item.updateTime || item.lastPlayTime) }}</text>
+              <text class="episode" v-if="getEpisode(item)">第{{ getEpisode(item) }}集</text>
+              <text class="time">{{ formatTime(getTime(item)) }}</text>
             </view>
             <view class="progress" v-if="item.progress">
               <view class="progress-bar">
-                <view class="progress-fill" :style="{ width: (item.progress / item.duration * 100) + '%' }"></view>
+                <view class="progress-fill" :style="{ width: getProgressPercent(item) + '%' }"></view>
               </view>
               <text class="progress-text">{{ formatProgress(item.progress, item.duration) }}</text>
             </view>
@@ -65,16 +65,19 @@ export default {
         url: '/api/playrecords',
         withCredentials: true,
         success: (res) => {
+          console.log('playrecords response:', JSON.stringify(res.data))
           if (res.data) {
-            // 兼容不同的返回格式
             if (Array.isArray(res.data)) {
               this.list = res.data
             } else if (res.data.list) {
               this.list = res.data.list
             } else if (res.data.records) {
               this.list = res.data.records
+            } else if (res.data.data) {
+              this.list = Array.isArray(res.data.data) ? res.data.data : []
             }
           }
+          console.log('list:', JSON.stringify(this.list))
         },
         fail: () => {
           uni.showToast({ title: '加载失败', icon: 'none' })
@@ -84,13 +87,39 @@ export default {
         }
       })
     },
+    // 获取封面
+    getCover(item) {
+      return item.cover || item.pic || item.poster || item.thumb || ''
+    },
+    // 获取标题
+    getTitle(item) {
+      return item.title || item.name || item.videoTitle || item.videoName || '未知内容'
+    },
+    // 获取集数
+    getEpisode(item) {
+      return item.episode || item.episodeIndex || item.ep || ''
+    },
+    // 获取时间
+    getTime(item) {
+      return item.updateTime || item.lastPlayTime || item.createdAt || item.time || item.playTime || Date.now()
+    },
+    // 获取进度百分比
+    getProgressPercent(item) {
+      if (!item.progress || !item.duration) return 0
+      return Math.min((item.progress / item.duration) * 100, 100)
+    },
     deleteItem(item, index) {
       uni.showModal({
         title: '提示',
         content: '确定删除该记录？',
         success: (res) => {
           if (res.confirm) {
-            const id = item.id || item._id
+            const id = item.id || item._id || item.videoId
+            if (!id) {
+              this.list.splice(index, 1)
+              uni.showToast({ title: '已删除', icon: 'none' })
+              return
+            }
             uni.request({
               url: '/api/playrecords/' + id,
               method: 'DELETE',
@@ -100,7 +129,9 @@ export default {
                 uni.showToast({ title: '已删除', icon: 'none' })
               },
               fail: () => {
-                uni.showToast({ title: '删除失败', icon: 'none' })
+                // 如果删除失败也本地移除
+                this.list.splice(index, 1)
+                uni.showToast({ title: '已删除', icon: 'none' })
               }
             })
           }
@@ -108,12 +139,44 @@ export default {
       })
     },
     goDetail(item) {
-      const id = item.videoId || item.id
-      const type = item.type || 'movie'
-      const title = item.title || item.name
+      const id = item.videoId || item.id || item._id
+      const type = item.type || item.videoType || 'movie'
+      const title = this.getTitle(item)
       
-      uni.navigateTo({
-        url: '/pages/play/play?id=' + id + '&type=' + type + '&title=' + encodeURIComponent(title)
+      // 如果有播放地址，直接播放
+      if (item.url || item.playUrl) {
+        const playData = {
+          title: title,
+          poster: this.getCover(item),
+          episodes: item.url ? [item.url] : [item.playUrl],
+          episodes_titles: item.episode ? ['第' + item.episode + '集'] : ['正片']
+        }
+        uni.navigateTo({
+          url: '/pages/play/play?title=' + encodeURIComponent(title) + '&data=' + encodeURIComponent(JSON.stringify(playData))
+        })
+        return
+      }
+      
+      // 否则搜索
+      uni.showLoading({ title: '搜索中...' })
+      uni.request({
+        url: '/api/search?q=' + encodeURIComponent(title),
+        withCredentials: true,
+        success: (res) => {
+          uni.hideLoading()
+          if (res.data && res.data.results && res.data.results.length > 0) {
+            const first = res.data.results[0]
+            uni.navigateTo({
+              url: '/pages/play/play?title=' + encodeURIComponent(first.title) + '&data=' + encodeURIComponent(JSON.stringify(first))
+            })
+          } else {
+            uni.showToast({ title: '未找到播放源', icon: 'none' })
+          }
+        },
+        fail: () => {
+          uni.hideLoading()
+          uni.showToast({ title: '搜索失败', icon: 'none' })
+        }
       })
     },
     formatTime(timestamp) {
@@ -123,16 +186,11 @@ export default {
       const now = new Date()
       const diff = now - date
       
-      // 小于1分钟
       if (diff < 60000) return '刚刚'
-      // 小于1小时
       if (diff < 3600000) return Math.floor(diff / 60000) + '分钟前'
-      // 小于24小时
       if (diff < 86400000) return Math.floor(diff / 3600000) + '小时前'
-      // 小于7天
       if (diff < 604800000) return Math.floor(diff / 86400000) + '天前'
       
-      // 其他显示日期
       const m = String(date.getMonth() + 1).padStart(2, '0')
       const d = String(date.getDate()).padStart(2, '0')
       return `${m}-${d}`
@@ -144,7 +202,7 @@ export default {
         const s = Math.floor(n % 60)
         return m + ':' + String(s).padStart(2, '0')
       }
-      return formatNum(progress) + ' / ' + (duration ? formatNum(duration) : '')
+      return formatNum(progress) + (duration ? ' / ' + formatNum(duration) : '')
     }
   }
 }
@@ -210,6 +268,9 @@ export default {
   flex: 1;
   padding-left: 20rpx;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .title {

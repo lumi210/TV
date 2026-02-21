@@ -1,7 +1,7 @@
 <template>
   <view class="page">
     <view class="video-wrap">
-      <video v-if="videoUrl" class="video" :src="videoUrl" :poster="poster" controls show-center-play-btn enable-progress-gesture />
+      <video v-if="videoUrl" class="video" :src="videoUrl" :poster="poster" controls show-center-play-btn enable-progress-gesture @timeupdate="onTimeUpdate" @ended="onEnded" />
       <view class="video-placeholder" v-else>
         <text v-if="loading">加载中...</text>
         <text v-else>视频加载失败</text>
@@ -49,6 +49,8 @@
 export default {
   data() {
     return {
+      id: '',
+      type: '',
       title: '',
       videoUrl: '',
       poster: '',
@@ -58,7 +60,10 @@ export default {
       episodes: [],
       episodeTitles: [],
       currentSource: 0,
-      currentEpisode: 0
+      currentEpisode: 0,
+      currentTime: 0,
+      duration: 0,
+      saveTimer: null
     }
   },
   onLoad(options) {
@@ -74,14 +79,23 @@ export default {
       }
     }
   },
+  onUnload() {
+    this.savePlayRecord()
+    if (this.saveTimer) {
+      clearTimeout(this.saveTimer)
+    }
+  },
   methods: {
     initWithData(data) {
+      this.id = data.id || data.vod_id || ''
+      this.type = data.type || 'movie'
+      
       this.info = {
         year: data.year,
         class: data.class,
-        desc: data.desc
+        desc: data.desc || data.description
       }
-      this.poster = data.poster || ''
+      this.poster = data.poster || data.pic || data.cover || ''
       
       if (data.episodes && data.episodes.length > 0) {
         this.episodes = data.episodes
@@ -110,6 +124,55 @@ export default {
       if (this.episodes[index]) {
         this.videoUrl = this.episodes[index]
       }
+    },
+    onTimeUpdate(e) {
+      this.currentTime = e.detail.currentTime
+      this.duration = e.detail.duration
+      
+      // 每30秒保存一次
+      if (!this.saveTimer && Math.floor(this.currentTime) % 30 === 0) {
+        this.savePlayRecord()
+        this.saveTimer = setTimeout(() => {
+          this.saveTimer = null
+        }, 30000)
+      }
+    },
+    onEnded() {
+      this.savePlayRecord()
+      
+      // 自动播放下一集
+      if (this.episodes.length > this.currentEpisode + 1) {
+        setTimeout(() => {
+          this.playEpisode(this.currentEpisode + 1)
+        }, 2000)
+      }
+    },
+    savePlayRecord() {
+      if (!this.id || !this.title) return
+      
+      const record = {
+        videoId: this.id,
+        type: this.type,
+        title: this.title,
+        cover: this.poster,
+        episode: this.currentEpisode + 1,
+        progress: Math.floor(this.currentTime),
+        duration: Math.floor(this.duration),
+        updateTime: Date.now()
+      }
+      
+      uni.request({
+        url: '/api/playrecords',
+        method: 'POST',
+        data: record,
+        withCredentials: true,
+        success: () => {
+          console.log('播放记录已保存')
+        },
+        fail: (err) => {
+          console.error('保存播放记录失败:', err)
+        }
+      })
     }
   }
 }
@@ -233,7 +296,6 @@ export default {
   }
 }
 
-/* 响应式适配 */
 @media screen and (min-width: 768px) {
   .video-wrap {
     max-height: 420rpx;
