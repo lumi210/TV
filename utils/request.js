@@ -1,25 +1,33 @@
-import { config } from './config'
+import { config, getServerUrl } from './config'
 
 class Request {
   constructor() {
-    this.baseUrl = config.baseUrl
+    this.baseUrl = ''
     this.timeout = config.timeout
   }
 
-  setBaseUrl(url) {
-    this.baseUrl = url
+  getUrl(options) {
+    let url = options.url
+    
+    if (url.startsWith('http')) {
+      return url
+    }
+    
+    // #ifdef H5
+    return url
+    // #endif
+    
+    // #ifndef H5
+    return getServerUrl() + url
+    // #endif
   }
 
   request(options = {}) {
     return new Promise((resolve, reject) => {
-      const url = options.url.startsWith('http') ? options.url : this.baseUrl + options.url
-      
+      const url = this.getUrl(options)
       const savedCookie = uni.getStorageSync('user_cookie') || ''
       
       console.log('[Request]', options.method || 'GET', url)
-      if (savedCookie) {
-        console.log('[Cookie]', savedCookie.substring(0, 50) + '...')
-      }
       
       uni.request({
         url: url,
@@ -58,7 +66,7 @@ class Request {
             uni.removeStorageSync('userInfo')
             reject(new Error('未授权，请先登录'))
           } else {
-            const errorMsg = res.data?.error || res.data?.message || `请求失败(${res.statusCode})`
+            const errorMsg = res.data?.error || res.data?.message || '请求失败(' + res.statusCode + ')'
             reject(new Error(errorMsg))
           }
         },
