@@ -110,7 +110,8 @@ export default {
           this.cardKeyName = this.getTypeName(configRes.cardKeyType || 'week')
         }
         if (cardKeysRes) {
-          this.unusedCardKeys = (cardKeysRes.cardKeys || []).filter(k => k.status === 'unused')
+          // 筛选未过期且未使用的卡密
+          this.unusedCardKeys = (cardKeysRes.cardKeys || []).filter(k => k.status === 'unused' && !k.isExpired)
         }
       } catch (e) {
         console.error('load data error:', e)

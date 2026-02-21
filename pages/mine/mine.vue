@@ -8,7 +8,7 @@
       <view class="user-card" v-if="userInfo">
         <view class="user-header">
           <text class="username">{{ userInfo.username }}</text>
-          <view class="vip-badge" v-if="cardKeyInfo && cardKeyInfo.isActive">
+          <view class="vip-badge" v-if="cardKeyInfo && !cardKeyInfo.isExpired">
             <text>VIP</text>
           </view>
         </view>
@@ -17,17 +17,17 @@
         <view class="cardkey-info" v-if="cardKeyInfo">
           <view class="cardkey-row">
             <text class="cardkey-label">会员状态</text>
-            <text class="cardkey-value" :class="{ active: cardKeyInfo.isActive }">
-              {{ cardKeyInfo.isActive ? '有效' : '已过期' }}
+            <text class="cardkey-value" :class="{ active: !cardKeyInfo.isExpired }">
+              {{ cardKeyInfo.isExpired ? '已过期' : '有效' }}
             </text>
           </view>
           <view class="cardkey-row" v-if="cardKeyInfo.expiresAt">
             <text class="cardkey-label">到期时间</text>
             <text class="cardkey-value">{{ formatTime(cardKeyInfo.expiresAt) }}</text>
           </view>
-          <view class="cardkey-row" v-if="cardKeyInfo.remainingDays !== undefined">
+          <view class="cardkey-row" v-if="cardKeyInfo.daysRemaining !== undefined && !cardKeyInfo.isExpired">
             <text class="cardkey-label">剩余天数</text>
-            <text class="cardkey-value">{{ cardKeyInfo.remainingDays }} 天</text>
+            <text class="cardkey-value">{{ cardKeyInfo.daysRemaining }} 天</text>
           </view>
         </view>
         
@@ -146,6 +146,7 @@ export default {
         url: '/api/user/cardkey',
         withCredentials: true,
         success: (res) => {
+          console.log('cardkey:', res.data)
           if (res.data && res.data.hasCardKey && res.data.cardKeyInfo) {
             this.cardKeyInfo = res.data.cardKeyInfo
           }

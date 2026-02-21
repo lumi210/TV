@@ -17,17 +17,17 @@
         <view class="info-list">
           <view class="info-item">
             <text class="info-label">会员状态</text>
-            <text class="info-value" :class="{ active: cardKeyInfo.isActive }">
-              {{ cardKeyInfo.isActive ? '有效' : '已过期' }}
+            <text class="info-value" :class="{ active: !cardKeyInfo.isExpired }">
+              {{ cardKeyInfo.isExpired ? '已过期' : '有效' }}
             </text>
           </view>
           <view class="info-item" v-if="cardKeyInfo.expiresAt">
             <text class="info-label">到期时间</text>
             <text class="info-value">{{ formatTime(cardKeyInfo.expiresAt) }}</text>
           </view>
-          <view class="info-item" v-if="cardKeyInfo.remainingDays !== undefined">
+          <view class="info-item" v-if="cardKeyInfo.daysRemaining !== undefined && !cardKeyInfo.isExpired">
             <text class="info-label">剩余天数</text>
-            <text class="info-value">{{ cardKeyInfo.remainingDays }} 天</text>
+            <text class="info-value">{{ cardKeyInfo.daysRemaining }} 天</text>
           </view>
         </view>
       </view>
@@ -95,7 +95,6 @@ export default {
     },
     formatTime(timestamp) {
       if (!timestamp) return ''
-      // 如果是秒级时间戳转换为毫秒
       const ts = timestamp > 9999999999 ? timestamp : timestamp * 1000
       const date = new Date(ts)
       const y = date.getFullYear()
