@@ -7,7 +7,6 @@ export function createApp() {
   const pinia = createPinia()
   app.use(pinia)
   return {
-    app,
-    pinia
+    app
   }
 }

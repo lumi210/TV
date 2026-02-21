@@ -2,7 +2,7 @@
   <view class="page">
     <view class="header">
       <view class="back-btn" @click="goBack">
-        <text>&#8592;</text>
+        <text>&lt;</text>
       </view>
       <text class="header-title">登录</text>
       <view class="placeholder"></view>
@@ -10,118 +10,105 @@
 
     <view class="content">
       <view class="logo-section">
-        <image class="logo" src="/static/logo.png" mode="aspectFit" />
         <text class="app-name">LunaTV</text>
         <text class="app-desc">影视聚合播放平台</text>
       </view>
 
       <view class="form-section">
         <view class="form-item">
-          <text class="form-label">用户名（选填）</text>
-          <input 
-            class="form-input" 
-            v-model="form.username" 
-            placeholder="管理员账号可不填"
-            type="text"
-          />
+          <text class="form-label">用户名</text>
+          <input class="form-input" v-model="username" placeholder="请输入用户名" type="text" />
         </view>
         <view class="form-item">
           <text class="form-label">密码</text>
-          <input 
-            class="form-input" 
-            v-model="form.password" 
-            placeholder="请输入密码"
-            :password="!showPassword"
-          />
-          <text class="toggle-pwd" @click="showPassword = !showPassword">
-            {{ showPassword ? '&#128065;' : '&#128064;' }}
-          </text>
+          <input class="form-input" v-model="password" placeholder="请输入密码" :password="true" />
         </view>
 
-        <view class="form-item" v-if="showCardKey">
-          <text class="form-label">卡密（选填）</text>
-          <input 
-            class="form-input" 
-            v-model="form.cardKey" 
-            placeholder="请输入卡密（可选）"
-          />
-        </view>
-
-        <button class="login-btn" :loading="loading" @click="handleLogin">
-          登录
-        </button>
-
-        <view class="register-link" v-if="showRegister">
-          <text>还没有账号？</text>
-          <text class="link" @click="goRegister">立即注册</text>
-        </view>
+        <button class="login-btn" :loading="loading" @click="handleLogin">登录</button>
       </view>
     </view>
   </view>
 </template>
 
-<script setup>
-import { ref } from 'vue'
-import { useUserStore } from '../../store/user'
+<script>
+export default {
+  data() {
+    return {
+      username: '',
+      password: '',
+      loading: false
+    }
+  },
+  methods: {
+    async handleLogin() {
+      if (!this.username) {
+        uni.showToast({ title: '请输入用户名', icon: 'none' })
+        return
+      }
+      if (!this.password) {
+        uni.showToast({ title: '请输入密码', icon: 'none' })
+        return
+      }
 
-const userStore = useUserStore()
-
-const loading = ref(false)
-const showPassword = ref(false)
-const showCardKey = ref(true)
-const showRegister = ref(true)
-const form = ref({
-  username: '',
-  password: '',
-  cardKey: ''
-})
-
-const handleLogin = async () => {
-  if (!form.value.password) {
-    uni.showToast({ title: '请输入密码', icon: 'none' })
-    return
+      this.loading = true
+      
+      try {
+        const res = await new Promise((resolve, reject) => {
+          uni.request({
+            url: '/api/login',
+            method: 'POST',
+            data: {
+              username: this.username,
+              password: this.password
+            },
+            success: (response) => {
+              resolve(response)
+            },
+            fail: (err) => {
+              reject(err)
+            }
+          })
+        })
+        
+        console.log('Login response:', res)
+        
+        if (res.statusCode === 200 && res.data && res.data.ok) {
+          const setCookie = res.header['set-cookie'] || res.header['Set-Cookie']
+          if (setCookie) {
+            let cookieValue = ''
+            if (Array.isArray(setCookie)) {
+              cookieValue = setCookie.map(c => c.split(';')[0]).join('; ')
+            } else {
+              cookieValue = setCookie.split(';')[0]
+            }
+            uni.setStorageSync('user_cookie', cookieValue)
+            console.log('Cookie saved:', cookieValue.substring(0, 50))
+          }
+          
+          uni.setStorageSync('userInfo', { username: this.username })
+          
+          uni.showToast({ title: '登录成功', icon: 'success' })
+          setTimeout(() => {
+            uni.switchTab({ url: '/pages/index/index' })
+          }, 1000)
+        } else {
+          uni.showToast({ title: res.data?.error || '登录失败', icon: 'none' })
+        }
+      } catch (error) {
+        console.error('Login error:', error)
+        uni.showToast({ title: '登录失败', icon: 'none' })
+      } finally {
+        this.loading = false
+      }
+    },
+    goBack() {
+      uni.navigateBack()
+    }
   }
-
-  loading.value = true
-  try {
-    const loginData = {
-      password: form.value.password
-    }
-    
-    if (form.value.username) {
-      loginData.username = form.value.username
-    }
-    
-    if (form.value.cardKey) {
-      loginData.cardKey = form.value.cardKey
-    }
-    
-    const result = await userStore.login(loginData)
-    if (result.success) {
-      uni.showToast({ title: '登录成功', icon: 'success' })
-      setTimeout(() => {
-        uni.switchTab({ url: '/pages/index/index' })
-      }, 1000)
-    } else {
-      uni.showToast({ title: result.message || '登录失败', icon: 'none' })
-    }
-  } catch (error) {
-    uni.showToast({ title: error.message || '登录失败', icon: 'none' })
-  } finally {
-    loading.value = false
-  }
-}
-
-const goBack = () => {
-  uni.navigateBack()
-}
-
-const goRegister = () => {
-  uni.navigateTo({ url: '/pages/register/register' })
 }
 </script>
 
-<style lang="scss" scoped>
+<style>
 .page {
   min-height: 100vh;
   background-color: #0f0f1a;
@@ -163,16 +150,10 @@ const goRegister = () => {
   margin-bottom: 64rpx;
 }
 
-.logo {
-  width: 120rpx;
-  height: 120rpx;
-}
-
 .app-name {
   font-size: 40rpx;
   font-weight: bold;
   color: #ff6b6b;
-  margin-top: 16rpx;
 }
 
 .app-desc {
@@ -189,7 +170,6 @@ const goRegister = () => {
 
 .form-item {
   margin-bottom: 32rpx;
-  position: relative;
 }
 
 .form-label {
@@ -210,14 +190,6 @@ const goRegister = () => {
   box-sizing: border-box;
 }
 
-.toggle-pwd {
-  position: absolute;
-  right: 24rpx;
-  bottom: 24rpx;
-  font-size: 36rpx;
-  color: #888888;
-}
-
 .login-btn {
   width: 100%;
   height: 96rpx;
@@ -227,23 +199,5 @@ const goRegister = () => {
   color: #ffffff;
   border: none;
   margin-top: 16rpx;
-  
-  &:active {
-    opacity: 0.8;
-  }
-}
-
-.register-link {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-top: 32rpx;
-  font-size: 26rpx;
-  color: #888888;
-}
-
-.link {
-  color: #ff6b6b;
-  margin-left: 8rpx;
 }
 </style>
