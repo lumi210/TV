@@ -155,7 +155,9 @@ export default {
     },
     formatTime(timestamp) {
       if (!timestamp) return ''
-      const date = new Date(timestamp * 1000)
+      // 如果是秒级时间戳转换为毫秒
+      const ts = timestamp > 9999999999 ? timestamp : timestamp * 1000
+      const date = new Date(ts)
       const y = date.getFullYear()
       const m = String(date.getMonth() + 1).padStart(2, '0')
       const d = String(date.getDate()).padStart(2, '0')

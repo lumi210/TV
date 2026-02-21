@@ -8,17 +8,26 @@
       <view class="card">
         <text class="card-title">输入卡密</text>
         <input class="card-input" v-model="cardKey" placeholder="请输入卡密" />
-        <button class="redeem-btn" @click="redeem">立即充值</button>
+        <button class="redeem-btn" :loading="loading" @click="redeem">立即充值</button>
       </view>
-      <view class="section" v-if="myCardKeys.length > 0">
-        <text class="section-title">我的卡密</text>
-        <view class="list">
-          <view class="item" v-for="(item, index) in myCardKeys" :key="index">
-            <view class="item-info">
-              <text class="item-code">{{ item.cardKey }}</text>
-              <text class="item-status">{{ item.status === 'used' ? '已使用' : '未使用' }}</text>
-            </view>
-            <text class="item-time">{{ item.createTime }}</text>
+      
+      <!-- 当前卡密信息 -->
+      <view class="section" v-if="cardKeyInfo">
+        <text class="section-title">当前会员信息</text>
+        <view class="info-list">
+          <view class="info-item">
+            <text class="info-label">会员状态</text>
+            <text class="info-value" :class="{ active: cardKeyInfo.isActive }">
+              {{ cardKeyInfo.isActive ? '有效' : '已过期' }}
+            </text>
+          </view>
+          <view class="info-item" v-if="cardKeyInfo.expiresAt">
+            <text class="info-label">到期时间</text>
+            <text class="info-value">{{ formatTime(cardKeyInfo.expiresAt) }}</text>
+          </view>
+          <view class="info-item" v-if="cardKeyInfo.remainingDays !== undefined">
+            <text class="info-label">剩余天数</text>
+            <text class="info-value">{{ cardKeyInfo.remainingDays }} 天</text>
           </view>
         </view>
       </view>
@@ -27,28 +36,39 @@
 </template>
 <script>
 export default {
-  data() { return { cardKey: '', myCardKeys: [] } },
-  onShow() { this.loadMyCardKeys() },
+  data() { 
+    return { 
+      cardKey: '', 
+      loading: false,
+      cardKeyInfo: null
+    } 
+  },
+  onShow() { 
+    this.loadCardKeyInfo()
+  },
   methods: {
     goBack() { uni.navigateBack() },
-    loadMyCardKeys() {
+    loadCardKeyInfo() {
       uni.request({
-        url: '/api/cardkeys/my',
+        url: '/api/user/cardkey',
         withCredentials: true,
         success: (res) => {
-          if (res.data && res.data.cardKeys) {
-            this.myCardKeys = res.data.cardKeys
+          if (res.data && res.data.hasCardKey && res.data.cardKeyInfo) {
+            this.cardKeyInfo = res.data.cardKeyInfo
           }
         }
       })
     },
-    redeem() {
+    async redeem() {
       if (!this.cardKey) {
         uni.showToast({ title: '请输入卡密', icon: 'none' })
         return
       }
+      
+      this.loading = true
+      
       uni.request({
-        url: '/api/redeem',
+        url: '/api/user/cardkey',
         method: 'POST',
         data: { cardKey: this.cardKey },
         withCredentials: true,
@@ -56,13 +76,34 @@ export default {
           if (res.data && res.data.ok) {
             uni.showToast({ title: '充值成功', icon: 'success' })
             this.cardKey = ''
-            this.loadMyCardKeys()
+            if (res.data.cardKeyInfo) {
+              this.cardKeyInfo = res.data.cardKeyInfo
+            } else {
+              this.loadCardKeyInfo()
+            }
           } else {
             uni.showToast({ title: res.data?.error || '充值失败', icon: 'none' })
           }
         },
-        fail: () => { uni.showToast({ title: '请求失败', icon: 'none' }) }
+        fail: () => { 
+          uni.showToast({ title: '请求失败', icon: 'none' }) 
+        },
+        complete: () => {
+          this.loading = false
+        }
       })
+    },
+    formatTime(timestamp) {
+      if (!timestamp) return ''
+      // 如果是秒级时间戳转换为毫秒
+      const ts = timestamp > 9999999999 ? timestamp : timestamp * 1000
+      const date = new Date(ts)
+      const y = date.getFullYear()
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const d = String(date.getDate()).padStart(2, '0')
+      const h = String(date.getHours()).padStart(2, '0')
+      const min = String(date.getMinutes()).padStart(2, '0')
+      return `${y}-${m}-${d} ${h}:${min}`
     }
   }
 }
@@ -79,10 +120,10 @@ export default {
 .redeem-btn { width: 100%; height: 88rpx; background: #ff6b6b; color: #fff; font-size: 32rpx; border-radius: 12rpx; margin-top: 24rpx; }
 .section { background: #1a1a2e; border-radius: 16rpx; padding: 24rpx; }
 .section-title { color: #fff; font-size: 30rpx; font-weight: bold; margin-bottom: 16rpx; display: block; }
-.item { padding: 20rpx 0; border-bottom: 1rpx solid #2d2d44; }
-.item:last-child { border-bottom: none; }
-.item-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8rpx; }
-.item-code { color: #fff; font-size: 28rpx; }
-.item-status { color: #4ecdc4; font-size: 24rpx; }
-.item-time { color: #888; font-size: 24rpx; }
+.info-list { }
+.info-item { display: flex; justify-content: space-between; padding: 16rpx 0; border-bottom: 1rpx solid #2d2d44; }
+.info-item:last-child { border-bottom: none; }
+.info-label { color: #aaa; font-size: 28rpx; }
+.info-value { color: #fff; font-size: 28rpx; }
+.info-value.active { color: #4ecdc4; }
 </style>
