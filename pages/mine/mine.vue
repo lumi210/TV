@@ -4,7 +4,7 @@
       <text class="header-title">我的</text>
     </view>
 
-    <view class="content">
+    <scroll-view scroll-y class="content">
       <view class="user-card" v-if="userInfo">
         <view class="user-header">
           <text class="username">{{ userInfo.username }}</text>
@@ -13,7 +13,6 @@
           </view>
         </view>
         
-        <!-- 卡密到期时间 -->
         <view class="cardkey-info" v-if="cardKeyInfo">
           <view class="cardkey-row">
             <text class="cardkey-label">会员状态</text>
@@ -99,7 +98,9 @@
       <view class="logout-btn" v-if="userInfo" @click="logout">
         <text>退出登录</text>
       </view>
-    </view>
+      
+      <view class="safe-area-bottom"></view>
+    </scroll-view>
   </view>
 </template>
 
@@ -146,7 +147,6 @@ export default {
         url: '/api/user/cardkey',
         withCredentials: true,
         success: (res) => {
-          console.log('cardkey:', res.data)
           if (res.data && res.data.hasCardKey && res.data.cardKeyInfo) {
             this.cardKeyInfo = res.data.cardKeyInfo
           }
@@ -208,33 +208,199 @@ export default {
 }
 </script>
 
-<style>
-.page { height: 100vh; background: #0f0f1a; }
-.header { padding: 24rpx; padding-top: calc(24rpx + constant(safe-area-inset-top)); padding-top: calc(24rpx + env(safe-area-inset-top)); background: #1a1a2e; }
-.header-title { color: #fff; font-size: 36rpx; font-weight: bold; }
-.content { padding: 24rpx; }
-.user-card { padding: 32rpx; background: #1a1a2e; border-radius: 16rpx; margin-bottom: 24rpx; }
-.user-header { display: flex; align-items: center; margin-bottom: 16rpx; }
-.username { color: #fff; font-size: 36rpx; font-weight: bold; }
-.vip-badge { margin-left: 16rpx; padding: 4rpx 16rpx; background: linear-gradient(135deg, #ffd700, #ffaa00); border-radius: 16rpx; }
-.vip-badge text { color: #1a1a2e; font-size: 22rpx; font-weight: bold; }
-.cardkey-info { padding: 16rpx; background: rgba(255, 215, 0, 0.1); border-radius: 12rpx; margin-bottom: 16rpx; }
-.cardkey-row { display: flex; justify-content: space-between; padding: 8rpx 0; }
-.cardkey-label { color: #aaa; font-size: 26rpx; }
-.cardkey-value { color: #fff; font-size: 26rpx; }
-.cardkey-value.active { color: #4ecdc4; }
-.login-text { color: #ff6b6b; font-size: 32rpx; text-align: center; display: block; }
-.stats { display: flex; margin-top: 16rpx; }
-.stat-item { flex: 1; text-align: center; }
-.stat-value { color: #fff; font-size: 36rpx; display: block; }
-.stat-label { color: #888; font-size: 24rpx; }
-.menu-section { margin-bottom: 24rpx; }
-.section-title { color: #888; font-size: 26rpx; margin-bottom: 12rpx; display: block; }
-.menu-list { background: #1a1a2e; border-radius: 16rpx; }
-.menu-item { display: flex; justify-content: space-between; align-items: center; padding: 28rpx 24rpx; border-bottom: 1rpx solid #2d2d44; }
-.menu-item:last-child { border-bottom: none; }
-.menu-item text { color: #fff; font-size: 30rpx; }
-.menu-item .arrow { color: #888; }
-.logout-btn { margin-top: 48rpx; padding: 28rpx; background: #1a1a2e; border-radius: 16rpx; text-align: center; }
-.logout-btn text { color: #ff6b6b; font-size: 30rpx; }
+<style lang="scss">
+@import '../../styles/common.scss';
+
+.page {
+  min-height: 100vh;
+  background: $color-bg;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 24rpx;
+  padding-top: calc(24rpx + constant(safe-area-inset-top));
+  padding-top: calc(24rpx + env(safe-area-inset-top));
+  background: $color-bg-secondary;
+}
+
+.header-title {
+  color: $color-text;
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+.content {
+  flex: 1;
+  padding: 24rpx;
+}
+
+.user-card {
+  padding: 32rpx;
+  background: $color-bg-secondary;
+  border-radius: 16rpx;
+  margin-bottom: 24rpx;
+}
+
+.user-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.username {
+  color: $color-text;
+  font-size: 36rpx;
+  font-weight: bold;
+}
+
+.vip-badge {
+  margin-left: 16rpx;
+  padding: 4rpx 16rpx;
+  background: linear-gradient(135deg, #ffd700, #ffaa00);
+  border-radius: 16rpx;
+  
+  text {
+    color: $color-bg;
+    font-size: 22rpx;
+    font-weight: bold;
+  }
+}
+
+.cardkey-info {
+  padding: 16rpx;
+  background: rgba(#ffd700, 0.1);
+  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.cardkey-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 8rpx 0;
+}
+
+.cardkey-label {
+  color: $color-text-secondary;
+  font-size: 26rpx;
+}
+
+.cardkey-value {
+  color: $color-text;
+  font-size: 26rpx;
+  
+  &.active {
+    color: $color-secondary;
+  }
+}
+
+.login-text {
+  color: $color-primary;
+  font-size: 32rpx;
+  text-align: center;
+  display: block;
+}
+
+.stats {
+  display: flex;
+  margin-top: 16rpx;
+}
+
+.stat-item {
+  flex: 1;
+  text-align: center;
+  padding: 16rpx;
+  
+  &:active {
+    opacity: 0.8;
+  }
+}
+
+.stat-value {
+  color: $color-text;
+  font-size: 36rpx;
+  display: block;
+}
+
+.stat-label {
+  color: $color-text-muted;
+  font-size: 24rpx;
+}
+
+.menu-section {
+  margin-bottom: 24rpx;
+}
+
+.section-title {
+  color: $color-text-muted;
+  font-size: 26rpx;
+  margin-bottom: 12rpx;
+  display: block;
+}
+
+.menu-list {
+  background: $color-bg-secondary;
+  border-radius: 16rpx;
+}
+
+.menu-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28rpx 24rpx;
+  border-bottom: 1rpx solid $color-border;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &:active {
+    background: rgba(255, 255, 255, 0.05);
+  }
+  
+  text {
+    color: $color-text;
+    font-size: 30rpx;
+  }
+}
+
+.arrow {
+  color: $color-text-muted;
+}
+
+.logout-btn {
+  margin-top: 48rpx;
+  padding: 28rpx;
+  background: $color-bg-secondary;
+  border-radius: 16rpx;
+  text-align: center;
+  
+  &:active {
+    opacity: 0.8;
+  }
+  
+  text {
+    color: $color-primary;
+    font-size: 30rpx;
+  }
+}
+
+/* 响应式适配 - 平板 */
+@media screen and (min-width: 768px) {
+  .content {
+    max-width: 750rpx;
+    margin: 0 auto;
+  }
+  
+  .stats {
+    .stat-item {
+      flex: none;
+      width: 33.33%;
+    }
+  }
+}
 </style>

@@ -7,15 +7,52 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="format-detection" content="telephone=no" />
     <meta name="msapplication-tap-highlight" content="no" />
+    <meta name="theme-color" content="#0f0f1a" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>LunaTV</title>
     <link rel="icon" href="/static/logo.png" />
     <style>
       * {
         margin: 0;
         padding: 0;
+        box-sizing: border-box;
+      }
+      html, body {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        background-color: #0f0f1a;
+        -webkit-text-size-adjust: 100%;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-overflow-scrolling: touch;
       }
       body {
-        background-color: #0f0f1a;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+        font-size: 16px;
+        line-height: 1.5;
+        color: #ffffff;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+      #app {
+        width: 100%;
+        height: 100%;
+      }
+      /* 防止 iOS 橡皮筋效果 */
+      .no-bounce {
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+        height: 100%;
+      }
+      /* 安全区域适配 */
+      @supports (padding-top: env(safe-area-inset-top)) {
+        .safe-area-top {
+          padding-top: env(safe-area-inset-top);
+        }
+        .safe-area-bottom {
+          padding-bottom: env(safe-area-inset-bottom);
+        }
       }
     </style>
   </head>

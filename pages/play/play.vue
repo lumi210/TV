@@ -1,7 +1,7 @@
 <template>
   <view class="page">
     <view class="video-wrap">
-      <video v-if="videoUrl" class="video" :src="videoUrl" :poster="poster" controls show-center-play-btn />
+      <video v-if="videoUrl" class="video" :src="videoUrl" :poster="poster" controls show-center-play-btn enable-progress-gesture />
       <view class="video-placeholder" v-else>
         <text v-if="loading">加载中...</text>
         <text v-else>视频加载失败</text>
@@ -39,6 +39,8 @@
           </view>
         </scroll-view>
       </view>
+      
+      <view class="safe-area-bottom"></view>
     </scroll-view>
   </view>
 </template>
@@ -113,25 +115,137 @@ export default {
 }
 </script>
 
-<style>
-.page { height: 100vh; background: #0f0f1a; display: flex; flex-direction: column; }
-.video-wrap { width: 100%; height: 420rpx; background: #000; }
-.video { width: 100%; height: 100%; }
-.video-placeholder { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; }
-.video-placeholder text { color: #888; font-size: 28rpx; }
-.content { flex: 1; }
-.info { padding: 24rpx; background: #1a1a2e; }
-.title { color: #fff; font-size: 36rpx; font-weight: bold; display: block; }
-.meta { margin-top: 12rpx; display: flex; gap: 16rpx; flex-wrap: wrap; }
-.year { color: #888; font-size: 26rpx; }
-.class { color: #4ecdc4; font-size: 24rpx; }
-.desc { margin-top: 16rpx; color: #aaa; font-size: 26rpx; line-height: 1.6; }
-.source-section, .episode-section { padding: 24rpx; }
-.section-title { color: #fff; font-size: 30rpx; font-weight: bold; }
-.source-scroll, .episode-scroll { margin-top: 16rpx; white-space: nowrap; }
-.source-list, .episode-list { display: inline-flex; gap: 12rpx; }
-.source-item, .episode-item { padding: 16rpx 24rpx; background: #1a1a2e; border-radius: 24rpx; }
-.source-item text, .episode-item text { color: #888; font-size: 26rpx; }
-.source-item.active, .episode-item.active { background: #ff6b6b; }
-.source-item.active text, .episode-item.active text { color: #fff; }
+<style lang="scss">
+@import '../../styles/common.scss';
+
+.page {
+  height: 100vh;
+  background: $color-bg;
+  display: flex;
+  flex-direction: column;
+}
+
+.video-wrap {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #000;
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+}
+
+.video-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  text {
+    color: $color-text-muted;
+    font-size: 28rpx;
+  }
+}
+
+.content {
+  flex: 1;
+}
+
+.info {
+  padding: 24rpx;
+  background: $color-bg-secondary;
+}
+
+.title {
+  color: $color-text;
+  font-size: 36rpx;
+  font-weight: bold;
+  display: block;
+}
+
+.meta {
+  margin-top: 12rpx;
+  display: flex;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.year {
+  color: $color-text-muted;
+  font-size: 26rpx;
+}
+
+.class {
+  color: $color-secondary;
+  font-size: 24rpx;
+}
+
+.desc {
+  margin-top: 16rpx;
+  color: $color-text-secondary;
+  font-size: 26rpx;
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.source-section, .episode-section {
+  padding: 24rpx;
+}
+
+.section-title {
+  color: $color-text;
+  font-size: 30rpx;
+  font-weight: bold;
+}
+
+.source-scroll, .episode-scroll {
+  margin-top: 16rpx;
+  white-space: nowrap;
+}
+
+.source-list, .episode-list {
+  display: flex;
+  gap: 12rpx;
+}
+
+.source-item, .episode-item {
+  padding: 16rpx 24rpx;
+  background: $color-bg-secondary;
+  border-radius: 24rpx;
+  flex-shrink: 0;
+  
+  text {
+    color: $color-text-muted;
+    font-size: 26rpx;
+  }
+  
+  &.active {
+    background: $color-primary;
+    
+    text {
+      color: $color-text;
+    }
+  }
+}
+
+/* 响应式适配 */
+@media screen and (min-width: 768px) {
+  .video-wrap {
+    max-height: 420rpx;
+  }
+  
+  .episode-list {
+    flex-wrap: wrap;
+    white-space: normal;
+  }
+  
+  .episode-item {
+    flex-shrink: 1;
+  }
+}
 </style>

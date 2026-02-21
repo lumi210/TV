@@ -7,7 +7,13 @@
       </view>
     </view>
 
-    <scroll-view scroll-y class="content">
+    <scroll-view 
+      scroll-y 
+      class="content" 
+      :refresher-enabled="true" 
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
+    >
       <view class="section" v-if="movies.length > 0">
         <view class="section-header">
           <text class="section-title">热门电影</text>
@@ -15,7 +21,7 @@
         <scroll-view scroll-x class="scroll-x">
           <view class="movie-list">
             <view class="movie-card" v-for="(item, index) in movies" :key="index" @click="searchAndPlay(item)">
-              <image class="movie-cover" :src="item.poster" mode="aspectFill" />
+              <image class="movie-cover" :src="item.poster" mode="aspectFill" lazy-load />
               <view class="movie-info">
                 <text class="movie-title">{{ item.title }}</text>
                 <text class="movie-rate" v-if="item.rate">{{ item.rate }}分</text>
@@ -32,7 +38,7 @@
         <scroll-view scroll-x class="scroll-x">
           <view class="movie-list">
             <view class="movie-card" v-for="(item, index) in tvShows" :key="index" @click="searchAndPlay(item)">
-              <image class="movie-cover" :src="item.poster" mode="aspectFill" />
+              <image class="movie-cover" :src="item.poster" mode="aspectFill" lazy-load />
               <view class="movie-info">
                 <text class="movie-title">{{ item.title }}</text>
                 <text class="movie-rate" v-if="item.rate">{{ item.rate }}分</text>
@@ -49,7 +55,7 @@
         <scroll-view scroll-x class="scroll-x">
           <view class="movie-list">
             <view class="movie-card" v-for="(item, index) in varietyShows" :key="index" @click="searchAndPlay(item)">
-              <image class="movie-cover" :src="item.poster" mode="aspectFill" />
+              <image class="movie-cover" :src="item.poster" mode="aspectFill" lazy-load />
               <view class="movie-info">
                 <text class="movie-title">{{ item.title }}</text>
                 <text class="movie-rate" v-if="item.rate">{{ item.rate }}分</text>
@@ -66,6 +72,8 @@
       <view class="loading" v-if="loading">
         <text>加载中...</text>
       </view>
+      
+      <view class="safe-area-bottom"></view>
     </scroll-view>
   </view>
 </template>
@@ -76,6 +84,7 @@ export default {
     return {
       isLoggedIn: false,
       loading: false,
+      refreshing: false,
       movies: [],
       tvShows: [],
       varietyShows: []
@@ -153,30 +162,167 @@ export default {
           }
         }
       })
+    },
+    onRefresh() {
+      this.refreshing = true
+      this.loadData()
+      setTimeout(() => {
+        this.refreshing = false
+      }, 1000)
     }
   }
 }
 </script>
 
-<style>
-.page { height: 100vh; background: #0f0f1a; display: flex; flex-direction: column; }
-.header { padding: 24rpx; padding-top: calc(24rpx + constant(safe-area-inset-top)); padding-top: calc(24rpx + env(safe-area-inset-top)); background: #1a1a2e; display: flex; align-items: center; justify-content: space-between; }
-.title { color: #ff6b6b; font-size: 40rpx; font-weight: bold; }
-.search-btn { padding: 12rpx 24rpx; background: rgba(255, 107, 107, 0.2); border-radius: 24rpx; }
-.search-btn text { color: #ff6b6b; font-size: 26rpx; }
-.content { flex: 1; }
-.section { margin-top: 24rpx; }
-.section-header { padding: 16rpx 24rpx; }
-.section-title { color: #fff; font-size: 32rpx; font-weight: bold; }
-.scroll-x { white-space: nowrap; }
-.movie-list { display: inline-flex; padding: 0 24rpx; }
-.movie-card { width: 200rpx; margin-right: 16rpx; flex-shrink: 0; }
-.movie-cover { width: 200rpx; height: 280rpx; border-radius: 12rpx; background: #1a1a2e; }
-.movie-info { padding: 8rpx 0; }
-.movie-title { color: #fff; font-size: 26rpx; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.movie-rate { color: #f5a623; font-size: 22rpx; }
-.login-tip { padding: 100rpx; text-align: center; }
-.login-tip text { color: #ff6b6b; font-size: 32rpx; }
-.loading { padding: 32rpx; text-align: center; }
-.loading text { color: #888; font-size: 26rpx; }
+<style lang="scss">
+@import '../../styles/common.scss';
+
+.page {
+  height: 100vh;
+  background: $color-bg;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 24rpx;
+  padding-top: calc(24rpx + constant(safe-area-inset-top));
+  padding-top: calc(24rpx + env(safe-area-inset-top));
+  background: $color-bg-secondary;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  color: $color-primary;
+  font-size: 40rpx;
+  font-weight: bold;
+}
+
+.search-btn {
+  padding: 12rpx 24rpx;
+  background: rgba($color-primary, 0.2);
+  border-radius: 24rpx;
+  
+  text {
+    color: $color-primary;
+    font-size: 26rpx;
+  }
+}
+
+.content {
+  flex: 1;
+}
+
+.section {
+  margin-top: 24rpx;
+}
+
+.section-header {
+  padding: 16rpx 24rpx;
+}
+
+.section-title {
+  color: $color-text;
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.scroll-x {
+  white-space: nowrap;
+}
+
+.movie-list {
+  display: flex;
+  padding: 0 24rpx;
+  gap: 16rpx;
+}
+
+.movie-card {
+  flex-shrink: 0;
+  width: 200rpx;
+}
+
+.movie-cover {
+  width: 200rpx;
+  height: 280rpx;
+  border-radius: 12rpx;
+  background: $color-bg-secondary;
+}
+
+.movie-info {
+  padding: 8rpx 0;
+}
+
+.movie-title {
+  color: $color-text;
+  font-size: 26rpx;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.movie-rate {
+  color: $color-warning;
+  font-size: 22rpx;
+}
+
+.login-tip {
+  padding: 100rpx;
+  text-align: center;
+  
+  text {
+    color: $color-primary;
+    font-size: 32rpx;
+  }
+}
+
+.loading {
+  padding: 32rpx;
+  text-align: center;
+  
+  text {
+    color: $color-text-muted;
+    font-size: 26rpx;
+  }
+}
+
+/* 响应式适配 */
+@media screen and (max-width: 375px) {
+  .movie-card {
+    width: 160rpx;
+  }
+  .movie-cover {
+    width: 160rpx;
+    height: 224rpx;
+  }
+}
+
+@media screen and (min-width: 414px) {
+  .movie-card {
+    width: 220rpx;
+  }
+  .movie-cover {
+    width: 220rpx;
+    height: 308rpx;
+  }
+}
+
+@media screen and (min-width: 768px) {
+  .movie-card {
+    width: 240rpx;
+  }
+  .movie-cover {
+    width: 240rpx;
+    height: 336rpx;
+  }
+  .movie-list {
+    gap: 24rpx;
+  }
+}
 </style>

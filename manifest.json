@@ -26,11 +26,13 @@
           "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>"
         ],
         "minSdkVersion": 21,
-        "targetSdkVersion": 30
+        "targetSdkVersion": 30,
+        "screenOrientation": ["portraitPrimary"]
       },
       "ios": {
         "idfa": false,
-        "allowsArbitraryLoads": true
+        "allowsArbitraryLoads": true,
+        "screenOrientation": ["portrait"]
       },
       "sdkConfigs": {}
     },
@@ -39,6 +41,11 @@
       "connectSocket": 30000,
       "uploadFile": 30000,
       "downloadFile": 30000
+    },
+    "statusbar": {
+      "immersed": true,
+      "style": "dark",
+      "background": "#0f0f1a"
     }
   },
   "quickapp": {},
@@ -62,14 +69,28 @@
     "usingComponents": true
   },
   "h5": {
+    "title": "LunaTV",
+    "template": "index.html",
+    "router": {
+      "mode": "hash"
+    },
     "devServer": {
+      "port": 5173,
+      "host": "0.0.0.0",
       "proxy": {
         "/api": {
           "target": "http://47.113.227.252:3000",
           "changeOrigin": true
         }
       }
-    }
+    },
+    "publicPath": "./",
+    "optimization": {
+      "treeShaking": {
+        "enable": true
+      }
+    },
+    "titleNView": false
   },
   "uniStatistics": {
     "enable": false
