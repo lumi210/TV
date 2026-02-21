@@ -7,7 +7,7 @@
     <view class="content">
       <view class="card">
         <text class="card-title">我的邀请码</text>
-        <text class="invite-code">{{ inviteCode || '登录后查看' }}</text>
+        <text class="invite-code">{{ inviteCode || '暂无邀请码' }}</text>
         <button class="copy-btn" v-if="inviteCode" @click="copyCode">复制邀请码</button>
       </view>
       <view class="section">
@@ -39,12 +39,12 @@ export default {
     goBack() { uni.navigateBack() },
     loadData() {
       uni.request({
-        url: '/api/invitation',
+        url: '/api/invitation/info',
         withCredentials: true,
         success: (res) => {
-          if (res.data) {
-            this.inviteCode = res.data.inviteCode || ''
-            this.records = res.data.records || []
+          if (res.data && !res.data.error) {
+            this.inviteCode = res.data.inviteCode || res.data.code || ''
+            this.records = res.data.records || res.data.history || []
           }
         }
       })

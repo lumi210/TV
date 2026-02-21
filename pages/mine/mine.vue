@@ -109,7 +109,8 @@ export default {
         url: '/api/user/my-stats',
         withCredentials: true,
         success: (res) => {
-          if (res.data) {
+          console.log('user stats:', res.data)
+          if (res.data && !res.data.error) {
             this.userStats = res.data
           }
         }

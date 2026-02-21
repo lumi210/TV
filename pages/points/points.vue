@@ -10,6 +10,12 @@
         <text class="points-value">{{ points }}</text>
       </view>
       <view class="section">
+        <text class="section-title">积分规则</text>
+        <text class="rule-text">1. 每日签到可获得积分</text>
+        <text class="rule-text">2. 邀请好友注册获得积分</text>
+        <text class="rule-text">3. 积分可用于兑换会员特权</text>
+      </view>
+      <view class="section">
         <text class="section-title">积分记录</text>
         <view class="list">
           <view class="item" v-for="(item, index) in records" :key="index">
@@ -35,12 +41,12 @@ export default {
     goBack() { uni.navigateBack() },
     loadData() {
       uni.request({
-        url: '/api/points',
+        url: '/api/user/my-stats',
         withCredentials: true,
         success: (res) => {
           if (res.data) {
             this.points = res.data.points || 0
-            this.records = res.data.records || []
+            this.records = res.data.pointsHistory || []
           }
         }
       })
@@ -57,8 +63,9 @@ export default {
 .points-card { padding: 48rpx; background: linear-gradient(135deg, #ff6b6b, #ff8e8e); border-radius: 16rpx; text-align: center; margin-bottom: 24rpx; }
 .points-label { color: rgba(255,255,255,0.8); font-size: 28rpx; }
 .points-value { color: #fff; font-size: 64rpx; font-weight: bold; display: block; margin-top: 16rpx; }
-.section { background: #1a1a2e; border-radius: 16rpx; padding: 24rpx; }
+.section { background: #1a1a2e; border-radius: 16rpx; padding: 24rpx; margin-bottom: 24rpx; }
 .section-title { color: #fff; font-size: 30rpx; font-weight: bold; margin-bottom: 16rpx; display: block; }
+.rule-text { color: #aaa; font-size: 26rpx; display: block; margin-bottom: 12rpx; }
 .item { display: flex; justify-content: space-between; padding: 20rpx 0; border-bottom: 1rpx solid #2d2d44; }
 .item:last-child { border-bottom: none; }
 .item-info { flex: 1; }
