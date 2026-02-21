@@ -17,11 +17,11 @@
 
       <view class="form-section">
         <view class="form-item">
-          <text class="form-label">用户名</text>
+          <text class="form-label">用户名（选填）</text>
           <input 
             class="form-input" 
             v-model="form.username" 
-            placeholder="请输入用户名"
+            placeholder="管理员账号可不填"
             type="text"
           />
         </view>
@@ -38,11 +38,20 @@
           </text>
         </view>
 
+        <view class="form-item" v-if="showCardKey">
+          <text class="form-label">卡密（选填）</text>
+          <input 
+            class="form-input" 
+            v-model="form.cardKey" 
+            placeholder="请输入卡密（可选）"
+          />
+        </view>
+
         <button class="login-btn" :loading="loading" @click="handleLogin">
           登录
         </button>
 
-        <view class="register-link">
+        <view class="register-link" v-if="showRegister">
           <text>还没有账号？</text>
           <text class="link" @click="goRegister">立即注册</text>
         </view>
@@ -59,16 +68,15 @@ const userStore = useUserStore()
 
 const loading = ref(false)
 const showPassword = ref(false)
+const showCardKey = ref(true)
+const showRegister = ref(true)
 const form = ref({
   username: '',
-  password: ''
+  password: '',
+  cardKey: ''
 })
 
 const handleLogin = async () => {
-  if (!form.value.username) {
-    uni.showToast({ title: '请输入用户名', icon: 'none' })
-    return
-  }
   if (!form.value.password) {
     uni.showToast({ title: '请输入密码', icon: 'none' })
     return
@@ -76,7 +84,19 @@ const handleLogin = async () => {
 
   loading.value = true
   try {
-    const result = await userStore.login(form.value)
+    const loginData = {
+      password: form.value.password
+    }
+    
+    if (form.value.username) {
+      loginData.username = form.value.username
+    }
+    
+    if (form.value.cardKey) {
+      loginData.cardKey = form.value.cardKey
+    }
+    
+    const result = await userStore.login(loginData)
     if (result.success) {
       uni.showToast({ title: '登录成功', icon: 'success' })
       setTimeout(() => {
@@ -86,7 +106,7 @@ const handleLogin = async () => {
       uni.showToast({ title: result.message || '登录失败', icon: 'none' })
     }
   } catch (error) {
-    uni.showToast({ title: '登录失败', icon: 'none' })
+    uni.showToast({ title: error.message || '登录失败', icon: 'none' })
   } finally {
     loading.value = false
   }

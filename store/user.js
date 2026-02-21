@@ -3,17 +3,12 @@ import { ref, computed } from 'vue'
 import { authApi } from '../api'
 
 export const useUserStore = defineStore('user', () => {
-  const token = ref(uni.getStorageSync('token') || '')
   const userInfo = ref(uni.getStorageSync('userInfo') || null)
+  const userCookie = ref(uni.getStorageSync('user_cookie') || '')
 
-  const isLoggedIn = computed(() => !!token.value)
+  const isLoggedIn = computed(() => !!userCookie.value)
   const username = computed(() => userInfo.value?.username || '')
   const isAdmin = computed(() => userInfo.value?.isAdmin || false)
-
-  const setToken = (newToken) => {
-    token.value = newToken
-    uni.setStorageSync('token', newToken)
-  }
 
   const setUserInfo = (info) => {
     userInfo.value = info
@@ -23,12 +18,16 @@ export const useUserStore = defineStore('user', () => {
   const login = async (loginData) => {
     try {
       const res = await authApi.login(loginData)
-      if (res.token) {
-        setToken(res.token)
-        setUserInfo(res.user)
+      if (res.ok) {
+        const cookie = uni.getStorageSync('user_cookie')
+        userCookie.value = cookie
+        setUserInfo({ 
+          username: loginData.username || 'user',
+          loginTime: Date.now()
+        })
         return { success: true }
       }
-      return { success: false, message: res.message || '登录失败' }
+      return { success: false, message: res.error || '登录失败' }
     } catch (error) {
       return { success: false, message: error.message }
     }
@@ -49,15 +48,15 @@ export const useUserStore = defineStore('user', () => {
     } catch (e) {
       console.error('logout error:', e)
     } finally {
-      token.value = ''
+      userCookie.value = ''
       userInfo.value = null
-      uni.removeStorageSync('token')
+      uni.removeStorageSync('user_cookie')
       uni.removeStorageSync('userInfo')
     }
   }
 
   const fetchUserInfo = async () => {
-    if (!token.value) return null
+    if (!userCookie.value) return null
     try {
       const res = await authApi.getUserInfo()
       setUserInfo(res)
@@ -69,12 +68,11 @@ export const useUserStore = defineStore('user', () => {
   }
 
   return {
-    token,
     userInfo,
+    userCookie,
     isLoggedIn,
     username,
     isAdmin,
-    setToken,
     setUserInfo,
     login,
     register,

@@ -4,35 +4,59 @@ class Request {
   constructor() {
     this.baseUrl = config.baseUrl
     this.timeout = config.timeout
+    this.cookie = ''
   }
 
   setBaseUrl(url) {
     this.baseUrl = url
   }
 
+  setCookie(cookie) {
+    this.cookie = cookie
+  }
+
+  getCookie() {
+    return this.cookie
+  }
+
   request(options = {}) {
     return new Promise((resolve, reject) => {
-      const token = uni.getStorageSync('token')
       const url = options.url.startsWith('http') ? options.url : this.baseUrl + options.url
+      
+      const savedCookie = uni.getStorageSync('user_cookie') || ''
       
       uni.request({
         url: url,
         method: options.method || 'GET',
         data: options.data || {},
         timeout: options.timeout || this.timeout,
+        withCredentials: true,
         header: {
           ...config.headers,
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+          ...(savedCookie ? { 'Cookie': savedCookie } : {}),
           ...options.header
         },
         success: (res) => {
+          const setCookie = res.header['Set-Cookie'] || res.header['set-cookie']
+          if (setCookie) {
+            let cookieValue = setCookie
+            if (Array.isArray(setCookie)) {
+              cookieValue = setCookie.map(c => c.split(';')[0]).join('; ')
+            } else {
+              cookieValue = setCookie.split(';')[0]
+            }
+            if (cookieValue.includes('user_auth')) {
+              uni.setStorageSync('user_cookie', cookieValue)
+              this.cookie = cookieValue
+            }
+          }
+          
           if (res.statusCode === 200) {
             resolve(res.data)
           } else if (res.statusCode === 401) {
-            uni.removeStorageSync('token')
+            uni.removeStorageSync('user_cookie')
             uni.removeStorageSync('userInfo')
-            uni.showToast({ title: '请先登录', icon: 'none' })
-            reject(new Error('未授权'))
+            reject(new Error('未授权，请先登录'))
           } else {
             const errorMsg = res.data?.error || res.data?.message || `请求失败(${res.statusCode})`
             reject(new Error(errorMsg))

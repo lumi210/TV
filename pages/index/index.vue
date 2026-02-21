@@ -137,6 +137,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { doubanApi, shortDramaApi } from '../../api'
+import { useUserStore } from '../../store/user'
+
+const userStore = useUserStore()
 
 const loading = ref(false)
 const refreshing = ref(false)
@@ -145,8 +148,19 @@ const hotTvShows = ref([])
 const hotVariety = ref([])
 const shortDramas = ref([])
 
+const checkLogin = () => {
+  const cookie = uni.getStorageSync('user_cookie')
+  if (!cookie) {
+    uni.navigateTo({ url: '/pages/login/login' })
+    return false
+  }
+  return true
+}
+
 const loadHomeData = async () => {
   if (loading.value) return
+  if (!checkLogin()) return
+  
   loading.value = true
   
   try {
