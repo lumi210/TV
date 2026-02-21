@@ -30,17 +30,17 @@
           </view>
         </view>
         
-        <view class="stats" v-if="userStats">
+        <view class="stats">
           <view class="stat-item" @click="goPage('/pages/points/points')">
-            <text class="stat-value">{{ userStats.points || 0 }}</text>
+            <text class="stat-value">{{ points }}</text>
             <text class="stat-label">积分</text>
           </view>
           <view class="stat-item" @click="goPage('/pages/favorites/favorites')">
-            <text class="stat-value">{{ userStats.favoriteCount || 0 }}</text>
+            <text class="stat-value">{{ favoriteCount }}</text>
             <text class="stat-label">收藏</text>
           </view>
           <view class="stat-item" @click="goPage('/pages/history/history')">
-            <text class="stat-value">{{ userStats.totalPlays || 0 }}</text>
+            <text class="stat-value">{{ playCount }}</text>
             <text class="stat-label">观看</text>
           </view>
         </view>
@@ -72,11 +72,17 @@
         <view class="menu-list">
           <view class="menu-item" @click="goPage('/pages/favorites/favorites')">
             <text>我的收藏</text>
-            <text class="arrow">&gt;</text>
+            <view class="item-extra">
+              <text class="item-count">{{ favoriteCount }}</text>
+              <text class="arrow">&gt;</text>
+            </view>
           </view>
           <view class="menu-item" @click="goPage('/pages/history/history')">
             <text>观看历史</text>
-            <text class="arrow">&gt;</text>
+            <view class="item-extra">
+              <text class="item-count">{{ playCount }}</text>
+              <text class="arrow">&gt;</text>
+            </view>
           </view>
         </view>
       </view>
@@ -109,15 +115,16 @@ export default {
   data() {
     return {
       userInfo: null,
-      userStats: null,
+      points: 0,
+      favoriteCount: 0,
+      playCount: 0,
       cardKeyInfo: null
     }
   },
   onShow() {
     this.userInfo = uni.getStorageSync('userInfo')
     if (this.userInfo) {
-      this.loadUserStats()
-      this.loadCardKeyInfo()
+      this.loadUserData()
     }
   },
   methods: {
@@ -131,18 +138,41 @@ export default {
       }
       uni.navigateTo({ url: url })
     },
-    loadUserStats() {
+    loadUserData() {
+      // 加载用户统计
       uni.request({
         url: '/api/user/my-stats',
         withCredentials: true,
         success: (res) => {
           if (res.data && !res.data.error) {
-            this.userStats = res.data
+            this.playCount = res.data.totalPlays || 0
           }
         }
       })
-    },
-    loadCardKeyInfo() {
+      
+      // 加载积分
+      uni.request({
+        url: '/api/points/balance',
+        withCredentials: true,
+        success: (res) => {
+          if (res.data && res.data.balance !== undefined) {
+            this.points = res.data.balance
+          }
+        }
+      })
+      
+      // 加载收藏数
+      uni.request({
+        url: '/api/favorites',
+        withCredentials: true,
+        success: (res) => {
+          if (res.data && res.data.list) {
+            this.favoriteCount = res.data.list.length
+          }
+        }
+      })
+      
+      // 加载卡密信息
       uni.request({
         url: '/api/user/cardkey',
         withCredentials: true,
@@ -368,6 +398,17 @@ export default {
   }
 }
 
+.item-extra {
+  display: flex;
+  align-items: center;
+}
+
+.item-count {
+  color: $color-text-muted;
+  font-size: 26rpx;
+  margin-right: 16rpx;
+}
+
 .arrow {
   color: $color-text-muted;
 }
@@ -394,13 +435,6 @@ export default {
   .content {
     max-width: 750rpx;
     margin: 0 auto;
-  }
-  
-  .stats {
-    .stat-item {
-      flex: none;
-      width: 33.33%;
-    }
   }
 }
 </style>
