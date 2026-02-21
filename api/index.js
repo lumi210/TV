@@ -27,8 +27,12 @@ export const authApi = {
 }
 
 export const doubanApi = {
-  getHome(params) {
-    return request.get('/api/douban', params)
+  getMovies(tag = '热门', pageStart = 0, pageSize = 16) {
+    return request.get('/api/douban', { type: 'movie', tag, pageStart, pageSize })
+  },
+
+  getTvShows(tag = '热门', pageStart = 0, pageSize = 16) {
+    return request.get('/api/douban', { type: 'tv', tag, pageStart, pageSize })
   },
 
   search(params) {
@@ -37,20 +41,12 @@ export const doubanApi = {
 
   getDetail(id, type = 'movie') {
     return request.get(`/api/detail/${type}/${id}`)
-  },
-
-  getCategories(type = 'movie') {
-    return request.get(`/api/douban/categories`, { type })
-  },
-
-  getByCategory(params) {
-    return request.get('/api/douban/category', params)
   }
 }
 
 export const playApi = {
   getPlayInfo(id, episode = 1) {
-    return request.get('/api/play', { id, episode })
+    return request.get('/api/detail', { id, episode })
   },
 
   getPlayRecords() {
@@ -85,26 +81,34 @@ export const favoriteApi = {
 }
 
 export const liveApi = {
-  getLiveList(params) {
-    return request.get('/api/live', params)
+  getSources() {
+    return request.get('/api/live/sources')
+  },
+
+  getChannels(source) {
+    return request.get('/api/live/channels', { source })
   },
 
   getEpg(channelId) {
-    return request.get(`/api/live/epg/${channelId}`)
+    return request.get(`/api/live/epg`, { channel: channelId })
   }
 }
 
 export const shortDramaApi = {
-  getDramaList(params) {
-    return request.get('/api/shortdrama', params)
+  getList(page = 1, size = 20) {
+    return request.get('/api/shortdrama/list', { page, size })
   },
 
-  getDramaDetail(id) {
-    return request.get(`/api/shortdrama/${id}`)
+  getDetail(id) {
+    return request.get(`/api/shortdrama/detail`, { id })
   },
 
-  searchDrama(params) {
+  search(params) {
     return request.get('/api/shortdrama/search', params)
+  },
+
+  getCategories() {
+    return request.get('/api/shortdrama/categories')
   }
 }
 

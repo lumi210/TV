@@ -37,47 +37,6 @@
         </view>
       </view>
 
-      <view class="hot-section" v-if="!keyword && hotList.length > 0">
-        <view class="section-header">
-          <text class="section-title">热门搜索</text>
-        </view>
-        <view class="hot-list">
-          <view 
-            class="hot-item" 
-            v-for="(item, index) in hotList" 
-            :key="index"
-            @click="goDetail(item)"
-          >
-            <text class="hot-rank" :class="{ 'top3': index < 3 }">{{ index + 1 }}</text>
-            <text class="hot-title">{{ item.title }}</text>
-            <text class="hot-badge" v-if="item.isNew">新</text>
-          </view>
-        </view>
-      </view>
-
-      <view class="filter-bar" v-if="keyword && total > 0">
-        <view 
-          class="filter-item" 
-          :class="{ active: currentType === '' }"
-          @click="filterByType('')"
-        >全部</view>
-        <view 
-          class="filter-item" 
-          :class="{ active: currentType === 'movie' }"
-          @click="filterByType('movie')"
-        >电影</view>
-        <view 
-          class="filter-item" 
-          :class="{ active: currentType === 'tv' }"
-          @click="filterByType('tv')"
-        >电视剧</view>
-        <view 
-          class="filter-item" 
-          :class="{ active: currentType === 'variety' }"
-          @click="filterByType('variety')"
-        >综艺</view>
-      </view>
-
       <view class="result-list" v-if="keyword">
         <view 
           class="result-item" 
@@ -87,12 +46,11 @@
         >
           <image class="result-cover" :src="item.cover || '/static/default-cover.png'" mode="aspectFill" />
           <view class="result-info">
-            <text class="result-title">{{ item.title }}</text>
-            <text class="result-desc">{{ item.actors || '未知演员' }}</text>
+            <text class="result-title">{{ item.name || item.title }}</text>
+            <text class="result-desc" v-if="item.actor">{{ item.actor }}</text>
             <view class="result-meta">
-              <text class="result-type">{{ getTypeName(item.type) }}</text>
-              <text class="result-year">{{ item.year }}</text>
-              <text class="result-rating" v-if="item.rating">{{ item.rating }}分</text>
+              <text class="result-type" v-if="item.type">{{ item.type }}</text>
+              <text class="result-year" v-if="item.year">{{ item.year }}</text>
             </view>
           </view>
         </view>
@@ -119,61 +77,38 @@ import { ref, onMounted } from 'vue'
 import { doubanApi } from '../../api'
 
 const keyword = ref('')
-const currentType = ref('')
 const loading = ref(false)
 const hasMore = ref(true)
-const page = ref(1)
-const total = ref(0)
 const resultList = ref([])
 const searchHistory = ref([])
-const hotList = ref([])
 
 const loadHistory = () => {
   const history = uni.getStorageSync('searchHistory') || []
   searchHistory.value = history.slice(0, 10)
 }
 
-const loadHotList = async () => {
-  try {
-    const res = await doubanApi.getHome()
-    if (res.data && res.data.hot) {
-      hotList.value = res.data.hot
-    }
-  } catch (error) {
-    console.error('加载热门搜索失败:', error)
-  }
-}
-
 const onSearch = async () => {
   if (!keyword.value.trim()) return
   
   saveHistory(keyword.value.trim())
-  page.value = 1
-  hasMore.value = true
-  resultList.value = []
-  await search()
-}
-
-const search = async () => {
-  if (loading.value) return
   loading.value = true
-
+  resultList.value = []
+  
   try {
-    const res = await doubanApi.search({
-      keyword: keyword.value,
-      type: currentType.value,
-      page: page.value
-    })
-    
-    if (res.data) {
-      if (page.value === 1) {
-        resultList.value = res.data.list || []
-      } else {
-        resultList.value = [...resultList.value, ...(res.data.list || [])]
-      }
-      total.value = res.data.total || 0
-      hasMore.value = resultList.value.length < total.value
+    const res = await doubanApi.search({ q: keyword.value })
+    if (res.results) {
+      resultList.value = res.results.map(item => ({
+        id: item.id || item.vod_id,
+        name: item.name || item.title || item.vod_name,
+        title: item.name || item.title || item.vod_name,
+        cover: item.cover || item.pic || item.vod_pic,
+        actor: item.actor || item.vod_actor,
+        type: item.type,
+        year: item.year || item.vod_year,
+        source: item.source
+      }))
     }
+    hasMore.value = false
   } catch (error) {
     console.error('搜索失败:', error)
     uni.showToast({ title: '搜索失败', icon: 'none' })
@@ -183,9 +118,6 @@ const search = async () => {
 }
 
 const loadMore = () => {
-  if (!hasMore.value || loading.value) return
-  page.value++
-  search()
 }
 
 const saveHistory = (kw) => {
@@ -210,38 +142,19 @@ const searchByHistory = (kw) => {
   onSearch()
 }
 
-const filterByType = (type) => {
-  currentType.value = type
-  page.value = 1
-  hasMore.value = true
-  resultList.value = []
-  search()
-}
-
 const goBack = () => {
   uni.navigateBack()
 }
 
 const goDetail = (item) => {
+  const type = item.type || 'movie'
   uni.navigateTo({ 
-    url: `/pages/play/play?id=${item.id}&type=${item.type || 'movie'}&title=${encodeURIComponent(item.title)}` 
+    url: `/pages/play/play?id=${item.id}&type=${type}&title=${encodeURIComponent(item.name || item.title)}&source=${item.source || ''}` 
   })
-}
-
-const getTypeName = (type) => {
-  const typeMap = {
-    movie: '电影',
-    tv: '电视剧',
-    variety: '综艺',
-    anime: '动漫',
-    shortdrama: '短剧'
-  }
-  return typeMap[type] || '影视'
 }
 
 onMounted(() => {
   loadHistory()
-  loadHotList()
 })
 </script>
 
@@ -344,67 +257,6 @@ onMounted(() => {
   color: #888888;
 }
 
-.hot-list {
-  padding: 0 24rpx;
-}
-
-.hot-item {
-  display: flex;
-  align-items: center;
-  padding: 20rpx 0;
-  border-bottom: 1rpx solid #1a1a2e;
-}
-
-.hot-rank {
-  width: 40rpx;
-  font-size: 28rpx;
-  font-weight: bold;
-  color: #888888;
-  text-align: center;
-  
-  &.top3 {
-    color: #ff6b6b;
-  }
-}
-
-.hot-title {
-  flex: 1;
-  font-size: 28rpx;
-  color: #ffffff;
-  margin-left: 16rpx;
-}
-
-.hot-badge {
-  font-size: 20rpx;
-  color: #ff6b6b;
-  padding: 4rpx 12rpx;
-  border: 1rpx solid #ff6b6b;
-  border-radius: 8rpx;
-}
-
-.filter-bar {
-  display: flex;
-  padding: 16rpx 24rpx;
-  gap: 16rpx;
-  background-color: #0f0f1a;
-  position: sticky;
-  top: 0;
-  z-index: 10;
-}
-
-.filter-item {
-  padding: 12rpx 32rpx;
-  font-size: 26rpx;
-  color: #888888;
-  background-color: #1a1a2e;
-  border-radius: 24rpx;
-  
-  &.active {
-    color: #ffffff;
-    background-color: #ff6b6b;
-  }
-}
-
 .result-list {
   padding: 0 24rpx;
 }
@@ -467,11 +319,6 @@ onMounted(() => {
 .result-year {
   font-size: 22rpx;
   color: #888888;
-}
-
-.result-rating {
-  font-size: 22rpx;
-  color: #f5a623;
 }
 
 .loading, .no-more {

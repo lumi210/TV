@@ -23,7 +23,7 @@
     <scroll-view scroll-y class="content">
       <view class="info-section">
         <view class="title-bar">
-          <text class="title">{{ videoInfo.title }}</text>
+          <text class="title">{{ videoInfo.name || videoInfo.title }}</text>
           <view class="actions">
             <view class="action-btn" @click="toggleFavorite">
               <text :class="['icon', { active: isFavorite }]">&#9829;</text>
@@ -32,14 +32,10 @@
           </view>
         </view>
         <view class="meta-info">
-          <text class="rating" v-if="videoInfo.rating">{{ videoInfo.rating }}分</text>
-          <text class="year">{{ videoInfo.year }}</text>
-          <text class="type">{{ getTypeName(videoInfo.type) }}</text>
+          <text class="score" v-if="videoInfo.score">{{ videoInfo.score }}分</text>
+          <text class="year" v-if="videoInfo.year">{{ videoInfo.year }}</text>
         </view>
-        <view class="tags" v-if="videoInfo.tags && videoInfo.tags.length > 0">
-          <text class="tag" v-for="(tag, index) in videoInfo.tags" :key="index">{{ tag }}</text>
-        </view>
-        <text class="desc" v-if="videoInfo.desc">{{ videoInfo.desc }}</text>
+        <text class="desc" v-if="videoInfo.description">{{ videoInfo.description }}</text>
       </view>
 
       <view class="source-section" v-if="sourceList.length > 1">
@@ -80,45 +76,13 @@
           </view>
         </scroll-view>
       </view>
-
-      <view class="actor-section" v-if="videoInfo.actors && videoInfo.actors.length > 0">
-        <view class="section-header">
-          <text class="section-title">演员</text>
-        </view>
-        <scroll-view scroll-x class="actor-scroll">
-          <view class="actor-list">
-            <view class="actor-item" v-for="(actor, index) in videoInfo.actors" :key="index">
-              <image class="actor-avatar" :src="actor.avatar || '/static/default-avatar.png'" mode="aspectFill" />
-              <text class="actor-name">{{ actor.name }}</text>
-              <text class="actor-role" v-if="actor.role">{{ actor.role }}</text>
-            </view>
-          </view>
-        </scroll-view>
-      </view>
-
-      <view class="recommend-section" v-if="recommendList.length > 0">
-        <view class="section-header">
-          <text class="section-title">推荐</text>
-        </view>
-        <view class="recommend-list">
-          <view 
-            class="recommend-item" 
-            v-for="(item, index) in recommendList" 
-            :key="index"
-            @click="goDetail(item)"
-          >
-            <image class="recommend-cover" :src="item.cover || '/static/default-cover.png'" mode="aspectFill" />
-            <text class="recommend-title">{{ item.title }}</text>
-          </view>
-        </view>
-      </view>
     </scroll-view>
   </view>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { playApi, favoriteApi, doubanApi } from '../../api'
+import { doubanApi, shortDramaApi, favoriteApi } from '../../api'
 import { useUserStore } from '../../store/user'
 
 const userStore = useUserStore()
@@ -135,7 +99,6 @@ const currentSourceIndex = ref(0)
 const videoInfo = ref({})
 const sourceList = ref([])
 const episodeList = ref([])
-const recommendList = ref([])
 const isFavorite = ref(false)
 
 let saveTimer = null
@@ -143,24 +106,52 @@ let saveTimer = null
 const loadVideoInfo = async () => {
   loading.value = true
   try {
-    const res = await playApi.getPlayInfo(videoId.value, currentEpisode.value)
-    if (res.data) {
-      videoInfo.value = res.data.info || {}
-      sourceList.value = res.data.sources || []
-      episodeList.value = res.data.episodes || []
-      recommendList.value = res.data.recommends || []
-      
-      if (sourceList.value.length > 0) {
-        const source = sourceList.value[currentSourceIndex.value] || sourceList.value[0]
-        videoUrl.value = source.url
+    let res
+    
+    if (videoType.value === 'shortdrama') {
+      res = await shortDramaApi.getDetail(videoId.value)
+      if (res.data) {
+        videoInfo.value = res.data
+        poster.value = res.data.cover || ''
+        
+        if (res.data.episodes && res.data.episodes.length > 0) {
+          episodeList.value = res.data.episodes
+          const ep = res.data.episodes[currentEpisode.value - 1] || res.data.episodes[0]
+          if (ep && ep.url) {
+            videoUrl.value = ep.url
+          }
+        } else if (res.data.url) {
+          videoUrl.value = res.data.url
+        }
       }
-      
-      poster.value = videoInfo.value.cover || ''
-      initialTime.value = res.data.progress || 0
-      
-      if (userStore.isLoggedIn) {
-        checkFavorite()
+    } else {
+      res = await doubanApi.getDetail(videoId.value, videoType.value)
+      if (res.data) {
+        videoInfo.value = res.data
+        poster.value = res.data.cover || res.data.pic || ''
+        
+        if (res.data.episodes && res.data.episodes.length > 0) {
+          episodeList.value = res.data.episodes
+          const ep = res.data.episodes[currentEpisode.value - 1] || res.data.episodes[0]
+          if (ep && ep.url) {
+            videoUrl.value = ep.url
+          }
+        } else if (res.data.url) {
+          videoUrl.value = res.data.url
+        }
+        
+        if (res.data.sources && res.data.sources.length > 0) {
+          sourceList.value = res.data.sources
+          const source = res.data.sources[currentSourceIndex.value] || res.data.sources[0]
+          if (source && source.url) {
+            videoUrl.value = source.url
+          }
+        }
       }
+    }
+    
+    if (userStore.isLoggedIn) {
+      checkFavorite()
     }
   } catch (error) {
     console.error('加载视频信息失败:', error)
@@ -172,7 +163,7 @@ const loadVideoInfo = async () => {
 
 const switchSource = (index) => {
   currentSourceIndex.value = index
-  if (sourceList.value[index]) {
+  if (sourceList.value[index] && sourceList.value[index].url) {
     videoUrl.value = sourceList.value[index].url
   }
 }
@@ -180,7 +171,13 @@ const switchSource = (index) => {
 const playEpisode = (episode) => {
   if (currentEpisode.value === episode) return
   currentEpisode.value = episode
-  loadVideoInfo()
+  
+  if (episodeList.value[episode - 1]) {
+    const ep = episodeList.value[episode - 1]
+    if (ep.url) {
+      videoUrl.value = ep.url
+    }
+  }
 }
 
 const onTimeUpdate = (e) => {
@@ -194,13 +191,13 @@ const onTimeUpdate = (e) => {
 
 const saveProgress = async (time) => {
   try {
-    await playApi.savePlayRecord({
+    await favoriteApi.addFavorite({
       id: videoId.value,
       type: videoType.value,
       episode: currentEpisode.value,
       progress: time,
-      title: videoInfo.value.title,
-      cover: videoInfo.value.cover
+      title: videoInfo.value.name || videoInfo.value.title,
+      cover: videoInfo.value.cover || videoInfo.value.pic
     })
   } catch (error) {
     console.error('保存播放记录失败:', error)
@@ -241,8 +238,8 @@ const toggleFavorite = async () => {
       await favoriteApi.addFavorite({
         id: videoId.value,
         type: videoType.value,
-        title: videoInfo.value.title,
-        cover: videoInfo.value.cover
+        title: videoInfo.value.name || videoInfo.value.title,
+        cover: videoInfo.value.cover || videoInfo.value.pic
       })
       isFavorite.value = true
       uni.showToast({ title: '收藏成功', icon: 'none' })
@@ -260,23 +257,6 @@ const checkFavorite = async () => {
   } catch (error) {
     console.error('检查收藏状态失败:', error)
   }
-}
-
-const goDetail = (item) => {
-  uni.redirectTo({ 
-    url: `/pages/play/play?id=${item.id}&type=${item.type || 'movie'}&title=${encodeURIComponent(item.title)}` 
-  })
-}
-
-const getTypeName = (type) => {
-  const typeMap = {
-    movie: '电影',
-    tv: '电视剧',
-    variety: '综艺',
-    anime: '动漫',
-    shortdrama: '短剧'
-  }
-  return typeMap[type] || '影视'
 }
 
 onMounted(() => {
@@ -394,30 +374,15 @@ onUnmounted(() => {
   gap: 16rpx;
 }
 
-.rating {
+.score {
   font-size: 28rpx;
   color: #f5a623;
   font-weight: bold;
 }
 
-.year, .type {
+.year {
   font-size: 24rpx;
   color: #888888;
-}
-
-.tags {
-  display: flex;
-  flex-wrap: wrap;
-  margin-top: 16rpx;
-  gap: 12rpx;
-}
-
-.tag {
-  font-size: 22rpx;
-  color: #4ecdc4;
-  padding: 6rpx 16rpx;
-  background-color: rgba(78, 205, 196, 0.2);
-  border-radius: 8rpx;
 }
 
 .desc {
@@ -445,7 +410,7 @@ onUnmounted(() => {
   color: #ff6b6b;
 }
 
-.source-scroll, .episode-scroll, .actor-scroll {
+.source-scroll, .episode-scroll {
   white-space: nowrap;
 }
 
@@ -471,70 +436,5 @@ onUnmounted(() => {
 .episode-item {
   min-width: 72rpx;
   text-align: center;
-}
-
-.actor-list {
-  display: inline-flex;
-  padding: 0 24rpx;
-  gap: 24rpx;
-}
-
-.actor-item {
-  width: 120rpx;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.actor-avatar {
-  width: 100rpx;
-  height: 100rpx;
-  border-radius: 50%;
-  background-color: #1a1a2e;
-}
-
-.actor-name {
-  font-size: 24rpx;
-  color: #ffffff;
-  margin-top: 8rpx;
-  text-align: center;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  width: 100%;
-}
-
-.actor-role {
-  font-size: 20rpx;
-  color: #888888;
-  text-align: center;
-}
-
-.recommend-list {
-  display: flex;
-  flex-wrap: wrap;
-  padding: 0 24rpx;
-  gap: 16rpx;
-}
-
-.recommend-item {
-  width: calc(33.33% - 12rpx);
-}
-
-.recommend-cover {
-  width: 100%;
-  height: 280rpx;
-  border-radius: 12rpx;
-  background-color: #1a1a2e;
-}
-
-.recommend-title {
-  font-size: 24rpx;
-  color: #ffffff;
-  margin-top: 8rpx;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: block;
 }
 </style>

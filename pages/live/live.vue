@@ -20,21 +20,16 @@
     </view>
 
     <scroll-view scroll-y class="content">
-      <view class="category-bar" v-if="categories.length > 0">
-        <scroll-view scroll-x class="category-scroll">
-          <view class="category-list">
+      <view class="source-bar" v-if="sources.length > 0">
+        <scroll-view scroll-x class="source-scroll">
+          <view class="source-list">
             <view 
-              class="category-item" 
-              :class="{ active: currentCategory === '' }"
-              @click="selectCategory('')"
-            >全部</view>
-            <view 
-              class="category-item" 
-              :class="{ active: currentCategory === cat.id }"
-              v-for="(cat, index) in categories" 
+              class="source-item" 
+              :class="{ active: currentSource === source.key }"
+              v-for="(source, index) in sources" 
               :key="index"
-              @click="selectCategory(cat.id)"
-            >{{ cat.name }}</view>
+              @click="selectSource(source.key)"
+            >{{ source.name }}</view>
           </view>
         </scroll-view>
       </view>
@@ -49,10 +44,6 @@
           <image class="channel-logo" :src="channel.logo || '/static/default-logo.png'" mode="aspectFit" />
           <view class="channel-info">
             <text class="channel-name">{{ channel.name }}</text>
-            <text class="channel-program" v-if="channel.currentProgram">{{ channel.currentProgram }}</text>
-          </view>
-          <view class="channel-status">
-            <text class="status-dot" :class="{ live: channel.isLive }"></text>
           </view>
         </view>
 
@@ -63,7 +54,7 @@
         <view class="empty" v-if="!loading && filteredChannels.length === 0">
           <image class="empty-image" src="/static/empty.png" mode="aspectFit" />
           <text class="empty-text">暂无直播频道</text>
-          <text class="empty-tip">请在设置中配置直播源</text>
+          <text class="empty-tip">请先配置直播源</text>
         </view>
       </view>
     </scroll-view>
@@ -81,7 +72,6 @@
         />
         <view class="player-info">
           <text class="player-title">{{ playingChannel.name }}</text>
-          <text class="player-program" v-if="playingChannel.currentProgram">{{ playingChannel.currentProgram }}</text>
         </view>
         <view class="close-btn" @click="closePlayer">
           <text>&#10005;</text>
@@ -98,37 +88,46 @@ import { liveApi } from '../../api'
 const loading = ref(false)
 const showSearch = ref(false)
 const searchKeyword = ref('')
-const currentCategory = ref('')
-const categories = ref([])
+const sources = ref([])
+const currentSource = ref('')
 const channelList = ref([])
 const playingChannel = ref(null)
 
 const filteredChannels = computed(() => {
-  let channels = channelList.value
+  if (!searchKeyword.value) return channelList.value
   
-  if (currentCategory.value) {
-    channels = channels.filter(c => c.category === currentCategory.value)
-  }
-  
-  if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase()
-    channels = channels.filter(c => 
-      c.name.toLowerCase().includes(keyword)
-    )
-  }
-  
-  return channels
+  const keyword = searchKeyword.value.toLowerCase()
+  return channelList.value.filter(c => 
+    c.name.toLowerCase().includes(keyword)
+  )
 })
 
-const loadLiveChannels = async () => {
+const loadSources = async () => {
+  try {
+    const res = await liveApi.getSources()
+    if (res.sources && res.sources.length > 0) {
+      sources.value = res.sources
+      currentSource.value = res.sources[0].key
+      await loadChannels()
+    }
+  } catch (error) {
+    console.error('加载直播源失败:', error)
+  }
+}
+
+const loadChannels = async () => {
+  if (!currentSource.value) return
+  
   loading.value = true
   try {
-    const res = await liveApi.getLiveList()
+    const res = await liveApi.getChannels(currentSource.value)
     if (res.data) {
-      categories.value = res.data.categories || []
-      channelList.value = res.data.channels || []
-      
-      loadEpgForChannels()
+      channelList.value = res.data.map(ch => ({
+        name: ch.name,
+        logo: ch.logo,
+        url: ch.url,
+        tvgId: ch.tvgId
+      }))
     }
   } catch (error) {
     console.error('加载直播频道失败:', error)
@@ -137,32 +136,12 @@ const loadLiveChannels = async () => {
   }
 }
 
-const loadEpgForChannels = async () => {
-  const now = Date.now()
-  for (const channel of channelList.value.slice(0, 20)) {
-    try {
-      const epgRes = await liveApi.getEpg(channel.id)
-      if (epgRes.data && epgRes.data.programs) {
-        const currentProgram = epgRes.data.programs.find(p => 
-          p.startTime <= now && p.endTime > now
-        )
-        if (currentProgram) {
-          channel.currentProgram = currentProgram.title
-          channel.isLive = true
-        }
-      }
-    } catch (e) {
-      console.error('加载EPG失败:', e)
-    }
-  }
-}
-
-const selectCategory = (categoryId) => {
-  currentCategory.value = categoryId
+const selectSource = (key) => {
+  currentSource.value = key
+  loadChannels()
 }
 
 const searchChannel = () => {
-  // 搜索逻辑已在 computed 中实现
 }
 
 const closeSearch = () => {
@@ -183,7 +162,7 @@ const onPlayError = () => {
 }
 
 onMounted(() => {
-  loadLiveChannels()
+  loadSources()
 })
 </script>
 
@@ -257,22 +236,22 @@ onMounted(() => {
   flex: 1;
 }
 
-.category-bar {
+.source-bar {
   background-color: #1a1a2e;
   border-bottom: 1rpx solid #2d2d44;
 }
 
-.category-scroll {
+.source-scroll {
   white-space: nowrap;
 }
 
-.category-list {
+.source-list {
   display: inline-flex;
   padding: 16rpx 24rpx;
   gap: 16rpx;
 }
 
-.category-item {
+.source-item {
   padding: 12rpx 32rpx;
   font-size: 26rpx;
   color: #888888;
@@ -312,33 +291,6 @@ onMounted(() => {
   font-size: 30rpx;
   color: #ffffff;
   display: block;
-}
-
-.channel-program {
-  font-size: 24rpx;
-  color: #888888;
-  margin-top: 8rpx;
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.channel-status {
-  padding: 16rpx;
-}
-
-.status-dot {
-  display: block;
-  width: 16rpx;
-  height: 16rpx;
-  border-radius: 50%;
-  background-color: #888888;
-  
-  &.live {
-    background-color: #4ecdc4;
-    box-shadow: 0 0 10rpx #4ecdc4;
-  }
 }
 
 .loading {
@@ -404,13 +356,6 @@ onMounted(() => {
   font-size: 32rpx;
   font-weight: bold;
   color: #ffffff;
-  display: block;
-}
-
-.player-program {
-  font-size: 26rpx;
-  color: #888888;
-  margin-top: 8rpx;
   display: block;
 }
 
