@@ -6,10 +6,34 @@
 
     <view class="content">
       <view class="user-card" v-if="userInfo">
-        <text class="username">{{ userInfo.username }}</text>
+        <view class="user-header">
+          <text class="username">{{ userInfo.username }}</text>
+          <view class="vip-badge" v-if="cardKeyInfo && cardKeyInfo.isActive">
+            <text>VIP</text>
+          </view>
+        </view>
+        
+        <!-- 卡密到期时间 -->
+        <view class="cardkey-info" v-if="cardKeyInfo">
+          <view class="cardkey-row">
+            <text class="cardkey-label">会员状态</text>
+            <text class="cardkey-value" :class="{ active: cardKeyInfo.isActive }">
+              {{ cardKeyInfo.isActive ? '有效' : '已过期' }}
+            </text>
+          </view>
+          <view class="cardkey-row" v-if="cardKeyInfo.expiresAt">
+            <text class="cardkey-label">到期时间</text>
+            <text class="cardkey-value">{{ formatTime(cardKeyInfo.expiresAt) }}</text>
+          </view>
+          <view class="cardkey-row" v-if="cardKeyInfo.remainingDays !== undefined">
+            <text class="cardkey-label">剩余天数</text>
+            <text class="cardkey-value">{{ cardKeyInfo.remainingDays }} 天</text>
+          </view>
+        </view>
+        
         <view class="stats" v-if="userStats">
           <view class="stat-item">
-            <text class="stat-value">{{ userStats.playCount || 0 }}</text>
+            <text class="stat-value">{{ userStats.totalPlays || 0 }}</text>
             <text class="stat-label">观看</text>
           </view>
           <view class="stat-item">
@@ -84,13 +108,15 @@ export default {
   data() {
     return {
       userInfo: null,
-      userStats: null
+      userStats: null,
+      cardKeyInfo: null
     }
   },
   onShow() {
     this.userInfo = uni.getStorageSync('userInfo')
     if (this.userInfo) {
       this.loadUserStats()
+      this.loadCardKeyInfo()
     }
   },
   methods: {
@@ -109,12 +135,33 @@ export default {
         url: '/api/user/my-stats',
         withCredentials: true,
         success: (res) => {
-          console.log('user stats:', res.data)
           if (res.data && !res.data.error) {
             this.userStats = res.data
           }
         }
       })
+    },
+    loadCardKeyInfo() {
+      uni.request({
+        url: '/api/user/cardkey',
+        withCredentials: true,
+        success: (res) => {
+          console.log('cardkey:', res.data)
+          if (res.data && res.data.hasCardKey && res.data.cardKeyInfo) {
+            this.cardKeyInfo = res.data.cardKeyInfo
+          }
+        }
+      })
+    },
+    formatTime(timestamp) {
+      if (!timestamp) return ''
+      const date = new Date(timestamp * 1000)
+      const y = date.getFullYear()
+      const m = String(date.getMonth() + 1).padStart(2, '0')
+      const d = String(date.getDate()).padStart(2, '0')
+      const h = String(date.getHours()).padStart(2, '0')
+      const min = String(date.getMinutes()).padStart(2, '0')
+      return `${y}-${m}-${d} ${h}:${min}`
     },
     changePassword() {
       uni.showModal({
@@ -166,9 +213,17 @@ export default {
 .header-title { color: #fff; font-size: 36rpx; font-weight: bold; }
 .content { padding: 24rpx; }
 .user-card { padding: 32rpx; background: #1a1a2e; border-radius: 16rpx; margin-bottom: 24rpx; }
+.user-header { display: flex; align-items: center; margin-bottom: 16rpx; }
 .username { color: #fff; font-size: 36rpx; font-weight: bold; }
+.vip-badge { margin-left: 16rpx; padding: 4rpx 16rpx; background: linear-gradient(135deg, #ffd700, #ffaa00); border-radius: 16rpx; }
+.vip-badge text { color: #1a1a2e; font-size: 22rpx; font-weight: bold; }
+.cardkey-info { padding: 16rpx; background: rgba(255, 215, 0, 0.1); border-radius: 12rpx; margin-bottom: 16rpx; }
+.cardkey-row { display: flex; justify-content: space-between; padding: 8rpx 0; }
+.cardkey-label { color: #aaa; font-size: 26rpx; }
+.cardkey-value { color: #fff; font-size: 26rpx; }
+.cardkey-value.active { color: #4ecdc4; }
 .login-text { color: #ff6b6b; font-size: 32rpx; text-align: center; display: block; }
-.stats { display: flex; margin-top: 24rpx; }
+.stats { display: flex; margin-top: 16rpx; }
 .stat-item { flex: 1; text-align: center; }
 .stat-value { color: #fff; font-size: 36rpx; display: block; }
 .stat-label { color: #888; font-size: 24rpx; }
