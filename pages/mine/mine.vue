@@ -32,22 +32,40 @@
         </view>
         
         <view class="stats" v-if="userStats">
-          <view class="stat-item">
-            <text class="stat-value">{{ userStats.totalPlays || 0 }}</text>
-            <text class="stat-label">观看</text>
+          <view class="stat-item" @click="goPage('/pages/points/points')">
+            <text class="stat-value">{{ userStats.points || 0 }}</text>
+            <text class="stat-label">积分</text>
           </view>
-          <view class="stat-item">
+          <view class="stat-item" @click="goPage('/pages/favorites/favorites')">
             <text class="stat-value">{{ userStats.favoriteCount || 0 }}</text>
             <text class="stat-label">收藏</text>
           </view>
-          <view class="stat-item" v-if="userStats.points !== undefined">
-            <text class="stat-value">{{ userStats.points }}</text>
-            <text class="stat-label">积分</text>
+          <view class="stat-item" @click="goPage('/pages/history/history')">
+            <text class="stat-value">{{ userStats.totalPlays || 0 }}</text>
+            <text class="stat-label">观看</text>
           </view>
         </view>
       </view>
       <view class="user-card" v-else @click="goLogin">
         <text class="login-text">点击登录</text>
+      </view>
+
+      <view class="menu-section">
+        <text class="section-title">会员中心</text>
+        <view class="menu-list">
+          <view class="menu-item" @click="goPage('/pages/points/points')">
+            <text>积分兑换</text>
+            <text class="arrow">&gt;</text>
+          </view>
+          <view class="menu-item" @click="goPage('/pages/invitation/invitation')">
+            <text>邀请好友</text>
+            <text class="arrow">&gt;</text>
+          </view>
+          <view class="menu-item" @click="goPage('/pages/cardkey/cardkey')">
+            <text>卡密充值</text>
+            <text class="arrow">&gt;</text>
+          </view>
+        </view>
       </view>
 
       <view class="menu-section">
@@ -59,24 +77,6 @@
           </view>
           <view class="menu-item" @click="goPage('/pages/history/history')">
             <text>观看历史</text>
-            <text class="arrow">&gt;</text>
-          </view>
-        </view>
-      </view>
-
-      <view class="menu-section" v-if="userInfo">
-        <text class="section-title">会员中心</text>
-        <view class="menu-list">
-          <view class="menu-item" @click="goPage('/pages/points/points')">
-            <text>我的积分</text>
-            <text class="arrow">&gt;</text>
-          </view>
-          <view class="menu-item" @click="goPage('/pages/invitation/invitation')">
-            <text>邀请好友</text>
-            <text class="arrow">&gt;</text>
-          </view>
-          <view class="menu-item" @click="goPage('/pages/cardkey/cardkey')">
-            <text>卡密充值</text>
             <text class="arrow">&gt;</text>
           </view>
         </view>
@@ -146,7 +146,6 @@ export default {
         url: '/api/user/cardkey',
         withCredentials: true,
         success: (res) => {
-          console.log('cardkey:', res.data)
           if (res.data && res.data.hasCardKey && res.data.cardKeyInfo) {
             this.cardKeyInfo = res.data.cardKeyInfo
           }
@@ -155,7 +154,6 @@ export default {
     },
     formatTime(timestamp) {
       if (!timestamp) return ''
-      // 如果是秒级时间戳转换为毫秒
       const ts = timestamp > 9999999999 ? timestamp : timestamp * 1000
       const date = new Date(ts)
       const y = date.getFullYear()
