@@ -1,5 +1,5 @@
 export const config = {
-  baseUrl: '',
+  baseUrl: 'https://moontv.lumi210.qzz.io',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'

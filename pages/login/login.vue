@@ -38,15 +38,6 @@
           </text>
         </view>
 
-        <view class="server-config">
-          <text class="config-label">服务器地址</text>
-          <input 
-            class="config-input" 
-            v-model="serverUrl" 
-            placeholder="请输入服务器地址，如 https://example.com"
-          />
-        </view>
-
         <button class="login-btn" :loading="loading" @click="handleLogin">
           登录
         </button>
@@ -63,7 +54,6 @@
 <script setup>
 import { ref } from 'vue'
 import { useUserStore } from '../../store/user'
-import { setBaseUrl } from '../../utils/config'
 
 const userStore = useUserStore()
 
@@ -73,7 +63,6 @@ const form = ref({
   username: '',
   password: ''
 })
-const serverUrl = ref(uni.getStorageSync('serverUrl') || '')
 
 const handleLogin = async () => {
   if (!form.value.username) {
@@ -84,13 +73,6 @@ const handleLogin = async () => {
     uni.showToast({ title: '请输入密码', icon: 'none' })
     return
   }
-  if (!serverUrl.value) {
-    uni.showToast({ title: '请配置服务器地址', icon: 'none' })
-    return
-  }
-
-  setBaseUrl(serverUrl.value)
-  uni.setStorageSync('serverUrl', serverUrl.value)
 
   loading.value = true
   try {
@@ -214,28 +196,6 @@ const goRegister = () => {
   bottom: 24rpx;
   font-size: 36rpx;
   color: #888888;
-}
-
-.server-config {
-  margin-bottom: 32rpx;
-}
-
-.config-label {
-  font-size: 24rpx;
-  color: #888888;
-  display: block;
-  margin-bottom: 12rpx;
-}
-
-.config-input {
-  width: 100%;
-  height: 72rpx;
-  background-color: #0f0f1a;
-  border-radius: 12rpx;
-  padding: 0 24rpx;
-  font-size: 26rpx;
-  color: #888888;
-  box-sizing: border-box;
 }
 
 .login-btn {

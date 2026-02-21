@@ -53,15 +53,6 @@
           </text>
         </view>
 
-        <view class="server-config">
-          <text class="config-label">服务器地址</text>
-          <input 
-            class="config-input" 
-            v-model="serverUrl" 
-            placeholder="请输入服务器地址"
-          />
-        </view>
-
         <view class="invite-code">
           <text class="config-label">邀请码（选填）</text>
           <input 
@@ -87,7 +78,6 @@
 <script setup>
 import { ref } from 'vue'
 import { useUserStore } from '../../store/user'
-import { setBaseUrl } from '../../utils/config'
 
 const userStore = useUserStore()
 
@@ -101,7 +91,6 @@ const form = ref({
   confirmPassword: '',
   inviteCode: ''
 })
-const serverUrl = ref(uni.getStorageSync('serverUrl') || '')
 
 const handleRegister = async () => {
   if (!form.value.username) {
@@ -120,13 +109,6 @@ const handleRegister = async () => {
     uni.showToast({ title: '两次密码不一致', icon: 'none' })
     return
   }
-  if (!serverUrl.value) {
-    uni.showToast({ title: '请配置服务器地址', icon: 'none' })
-    return
-  }
-
-  setBaseUrl(serverUrl.value)
-  uni.setStorageSync('serverUrl', serverUrl.value)
 
   loading.value = true
   try {
@@ -233,7 +215,7 @@ const goLogin = () => {
   color: #888888;
 }
 
-.server-config, .invite-code {
+.invite-code {
   margin-bottom: 32rpx;
 }
 

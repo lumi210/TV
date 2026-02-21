@@ -94,17 +94,9 @@ lunauinapp/
 
 ## 配置说明
 
-### 服务器地址
-
-首次使用时，需要在登录页或设置页配置 LunaTV 后端服务器地址，如：
-
-```
-https://your-lunatv-server.com
-```
-
 ### 后端项目
 
-本应用需要配合 LunaTV 后端使用：
+本应用已内置服务器地址，开箱即用，需配合 LunaTV 后端：
 - GitHub: https://github.com/lumi210/LunaTV
 
 ## 打包说明

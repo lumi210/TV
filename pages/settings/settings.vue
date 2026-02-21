@@ -10,29 +10,6 @@
 
     <scroll-view scroll-y class="content">
       <view class="setting-section">
-        <view class="section-title">服务器配置</view>
-        <view class="setting-item">
-          <text class="setting-label">服务器地址</text>
-          <input 
-            class="setting-input" 
-            v-model="serverUrl" 
-            placeholder="请输入服务器地址"
-            @blur="saveServerUrl"
-          />
-        </view>
-        <view class="setting-item">
-          <text class="setting-label">连接状态</text>
-          <text class="setting-value" :class="{ connected: isConnected }">
-            {{ isConnected ? '已连接' : '未连接' }}
-          </text>
-        </view>
-        <view class="setting-item" @click="testConnection">
-          <text class="setting-label">测试连接</text>
-          <text class="setting-action">点击测试</text>
-        </view>
-      </view>
-
-      <view class="setting-section">
         <view class="section-title">播放设置</view>
         <view class="setting-item">
           <text class="setting-label">自动播放下一集</text>
@@ -91,13 +68,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useUserStore } from '../../store/user'
-import { setBaseUrl } from '../../utils/config'
-import request from '../../utils/request'
 
 const userStore = useUserStore()
 
-const serverUrl = ref('')
-const isConnected = ref(false)
 const autoPlayNext = ref(true)
 const rememberProgress = ref(true)
 const defaultQuality = ref(0)
@@ -105,36 +78,11 @@ const cacheSize = ref('0KB')
 const qualityOptions = ['自动', '高清', '标清', '流畅']
 
 const loadSettings = () => {
-  serverUrl.value = uni.getStorageSync('serverUrl') || ''
   autoPlayNext.value = uni.getStorageSync('autoPlayNext') !== false
   rememberProgress.value = uni.getStorageSync('rememberProgress') !== false
   defaultQuality.value = uni.getStorageSync('defaultQuality') || 0
   
   calculateCacheSize()
-  testConnection()
-}
-
-const saveServerUrl = () => {
-  if (serverUrl.value) {
-    setBaseUrl(serverUrl.value)
-    uni.setStorageSync('serverUrl', serverUrl.value)
-    testConnection()
-  }
-}
-
-const testConnection = async () => {
-  if (!serverUrl.value) {
-    isConnected.value = false
-    return
-  }
-  
-  try {
-    request.setBaseUrl(serverUrl.value)
-    await request.get('/api/health')
-    isConnected.value = true
-  } catch (error) {
-    isConnected.value = false
-  }
 }
 
 const toggleAutoPlay = (e) => {
@@ -168,7 +116,7 @@ const clearCache = () => {
     content: '确定清除所有缓存吗？这将清除搜索历史等数据。',
     success: (res) => {
       if (res.confirm) {
-        const keysToKeep = ['token', 'userInfo', 'serverUrl', 'autoPlayNext', 'rememberProgress', 'defaultQuality']
+        const keysToKeep = ['token', 'userInfo', 'autoPlayNext', 'rememberProgress', 'defaultQuality']
         const info = uni.getStorageInfoSync()
         
         info.keys.forEach(key => {
@@ -192,7 +140,6 @@ const changePassword = () => {
     success: async (res) => {
       if (res.confirm && res.content) {
         try {
-          // 这里需要实际调用修改密码API
           uni.showToast({ title: '密码修改成功', icon: 'success' })
         } catch (error) {
           uni.showToast({ title: '修改失败', icon: 'none' })
@@ -305,17 +252,6 @@ onMounted(() => {
 }
 
 .setting-value {
-  font-size: 28rpx;
-  color: #888888;
-  
-  &.connected {
-    color: #4ecdc4;
-  }
-}
-
-.setting-input {
-  flex: 1;
-  text-align: right;
   font-size: 28rpx;
   color: #888888;
 }
