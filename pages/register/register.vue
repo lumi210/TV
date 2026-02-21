@@ -20,15 +20,6 @@
           />
         </view>
         <view class="form-item">
-          <text class="form-label">邮箱</text>
-          <input 
-            class="form-input" 
-            v-model="form.email" 
-            placeholder="请输入邮箱"
-            type="email"
-          />
-        </view>
-        <view class="form-item">
           <text class="form-label">密码</text>
           <input 
             class="form-input" 
@@ -86,7 +77,6 @@ const showPassword = ref(false)
 const showConfirmPassword = ref(false)
 const form = ref({
   username: '',
-  email: '',
   password: '',
   confirmPassword: '',
   inviteCode: ''
@@ -95,10 +85,6 @@ const form = ref({
 const handleRegister = async () => {
   if (!form.value.username) {
     uni.showToast({ title: '请输入用户名', icon: 'none' })
-    return
-  }
-  if (!form.value.email) {
-    uni.showToast({ title: '请输入邮箱', icon: 'none' })
     return
   }
   if (!form.value.password) {
@@ -114,7 +100,6 @@ const handleRegister = async () => {
   try {
     const result = await userStore.register({
       username: form.value.username,
-      email: form.value.email,
       password: form.value.password,
       inviteCode: form.value.inviteCode
     })

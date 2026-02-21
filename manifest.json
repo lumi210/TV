@@ -29,9 +29,16 @@
         "targetSdkVersion": 30
       },
       "ios": {
-        "idfa": false
+        "idfa": false,
+        "allowsArbitraryLoads": true
       },
       "sdkConfigs": {}
+    },
+    "networkTimeout": {
+      "request": 30000,
+      "connectSocket": 30000,
+      "uploadFile": 30000,
+      "downloadFile": 30000
     }
   },
   "quickapp": {},
@@ -53,6 +60,16 @@
   },
   "mp-toutiao": {
     "usingComponents": true
+  },
+  "h5": {
+    "devServer": {
+      "proxy": {
+        "/api": {
+          "target": "http://47.113.227.252:3000",
+          "changeOrigin": true
+        }
+      }
+    }
   },
   "uniStatistics": {
     "enable": false

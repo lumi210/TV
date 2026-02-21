@@ -16,17 +16,25 @@ class Request {
       
       const savedCookie = uni.getStorageSync('user_cookie') || ''
       
+      console.log('[Request]', options.method || 'GET', url)
+      if (savedCookie) {
+        console.log('[Cookie]', savedCookie.substring(0, 50) + '...')
+      }
+      
       uni.request({
         url: url,
         method: options.method || 'GET',
         data: options.data || {},
         timeout: options.timeout || this.timeout,
+        withCredentials: true,
         header: {
           ...config.headers,
           ...(savedCookie ? { 'Cookie': savedCookie } : {}),
           ...options.header
         },
         success: (res) => {
+          console.log('[Response]', res.statusCode, JSON.stringify(res.data).substring(0, 200))
+          
           const headers = res.header || {}
           const setCookie = headers['set-cookie'] || headers['Set-Cookie']
           
@@ -39,7 +47,7 @@ class Request {
             }
             if (cookieValue.includes('user_auth')) {
               uni.setStorageSync('user_cookie', cookieValue)
-              console.log('Cookie saved:', cookieValue.substring(0, 50) + '...')
+              console.log('[Cookie Saved]')
             }
           }
           
@@ -55,7 +63,7 @@ class Request {
           }
         },
         fail: (err) => {
-          console.error('网络请求失败:', err)
+          console.error('[Request Failed]', err)
           reject(new Error(err.errMsg || '网络请求失败'))
         }
       })
