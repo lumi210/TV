@@ -14,11 +14,11 @@
     <scroll-view scroll-y class="content">
       <view class="result-list">
         <view class="result-item" v-for="(item, index) in results" :key="index" @click="goDetail(item)">
-          <image class="result-cover" :src="item.pic || item.poster" mode="aspectFill" />
+          <image class="result-cover" :src="item.poster" mode="aspectFill" />
           <view class="result-info">
-            <text class="result-title">{{ item.name || item.title }}</text>
-            <text class="result-actor" v-if="item.actor">{{ item.actor }}</text>
-            <text class="result-source" v-if="item.source">来源: {{ item.sourceName || item.source }}</text>
+            <text class="result-title">{{ item.title }}</text>
+            <text class="result-meta" v-if="item.year || item.class">{{ item.year }} {{ item.class }}</text>
+            <text class="result-source">{{ item.source_name || '未知来源' }}</text>
           </view>
         </view>
       </view>
@@ -60,15 +60,7 @@ export default {
         success: (res) => {
           this.searched = true
           if (res.data && res.data.results) {
-            this.results = res.data.results.map(item => ({
-              id: item.id || item.vod_id,
-              name: item.name || item.title || item.vod_name,
-              title: item.name || item.title || item.vod_name,
-              pic: item.pic || item.poster || item.vod_pic,
-              actor: item.actor || item.vod_actor,
-              source: item.source,
-              sourceName: item.sourceName
-            }))
+            this.results = res.data.results
           }
         },
         complete: () => {
@@ -78,7 +70,7 @@ export default {
     },
     goDetail(item) {
       uni.navigateTo({
-        url: '/pages/play/play?id=' + item.id + '&source=' + (item.source || '') + '&title=' + encodeURIComponent(item.name || item.title) + '&poster=' + encodeURIComponent(item.pic || '')
+        url: '/pages/play/play?title=' + encodeURIComponent(item.title) + '&data=' + encodeURIComponent(JSON.stringify(item))
       })
     }
   }
@@ -86,106 +78,21 @@ export default {
 </script>
 
 <style>
-.page {
-  height: 100vh;
-  background: #0f0f1a;
-  display: flex;
-  flex-direction: column;
-}
-
-.header {
-  display: flex;
-  align-items: center;
-  padding: 24rpx;
-  padding-top: calc(24rpx + constant(safe-area-inset-top));
-  padding-top: calc(24rpx + env(safe-area-inset-top));
-  background: #1a1a2e;
-}
-
-.back {
-  width: 60rpx;
-}
-
-.back text {
-  color: #fff;
-  font-size: 36rpx;
-}
-
-.header-title {
-  color: #fff;
-  font-size: 36rpx;
-  font-weight: bold;
-}
-
-.search-bar {
-  padding: 16rpx 24rpx;
-  background: #1a1a2e;
-}
-
-.search-input {
-  width: 100%;
-  height: 72rpx;
-  padding: 0 24rpx;
-  background: #0f0f1a;
-  border-radius: 36rpx;
-  color: #fff;
-  font-size: 28rpx;
-}
-
-.content {
-  flex: 1;
-}
-
-.result-list {
-  padding: 0 24rpx;
-}
-
-.result-item {
-  display: flex;
-  padding: 24rpx 0;
-  border-bottom: 1rpx solid #1a1a2e;
-}
-
-.result-cover {
-  width: 140rpx;
-  height: 200rpx;
-  border-radius: 12rpx;
-  background: #1a1a2e;
-  flex-shrink: 0;
-}
-
-.result-info {
-  flex: 1;
-  padding-left: 24rpx;
-}
-
-.result-title {
-  color: #fff;
-  font-size: 30rpx;
-  display: block;
-  margin-bottom: 8rpx;
-}
-
-.result-actor {
-  color: #888;
-  font-size: 24rpx;
-  display: block;
-}
-
-.result-source {
-  color: #4ecdc4;
-  font-size: 22rpx;
-  margin-top: 8rpx;
-  display: block;
-}
-
-.loading, .empty {
-  padding: 48rpx;
-  text-align: center;
-}
-
-.loading text, .empty text {
-  color: #888;
-  font-size: 28rpx;
-}
+.page { height: 100vh; background: #0f0f1a; display: flex; flex-direction: column; }
+.header { display: flex; align-items: center; padding: 24rpx; padding-top: calc(24rpx + constant(safe-area-inset-top)); padding-top: calc(24rpx + env(safe-area-inset-top)); background: #1a1a2e; }
+.back { width: 60rpx; }
+.back text { color: #fff; font-size: 36rpx; }
+.header-title { color: #fff; font-size: 36rpx; font-weight: bold; }
+.search-bar { padding: 16rpx 24rpx; background: #1a1a2e; }
+.search-input { width: 100%; height: 72rpx; padding: 0 24rpx; background: #0f0f1a; border-radius: 36rpx; color: #fff; font-size: 28rpx; }
+.content { flex: 1; }
+.result-list { padding: 0 24rpx; }
+.result-item { display: flex; padding: 24rpx 0; border-bottom: 1rpx solid #1a1a2e; }
+.result-cover { width: 140rpx; height: 200rpx; border-radius: 12rpx; background: #1a1a2e; flex-shrink: 0; }
+.result-info { flex: 1; padding-left: 24rpx; }
+.result-title { color: #fff; font-size: 30rpx; display: block; margin-bottom: 8rpx; }
+.result-meta { color: #888; font-size: 24rpx; display: block; margin-bottom: 8rpx; }
+.result-source { color: #4ecdc4; font-size: 22rpx; }
+.loading, .empty { padding: 48rpx; text-align: center; }
+.loading text, .empty text { color: #888; font-size: 28rpx; }
 </style>

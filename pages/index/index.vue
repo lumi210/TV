@@ -7,15 +7,15 @@
       </view>
     </view>
 
-    <scroll-view scroll-y class="content" @scrolltolower="loadMore">
+    <scroll-view scroll-y class="content">
       <view class="section" v-if="movies.length > 0">
         <view class="section-header">
           <text class="section-title">热门电影</text>
         </view>
         <scroll-view scroll-x class="scroll-x">
           <view class="movie-list">
-            <view class="movie-card" v-for="(item, index) in movies" :key="index" @click="goDetail(item)">
-              <image class="movie-cover" :src="item.poster || item.cover" mode="aspectFill" />
+            <view class="movie-card" v-for="(item, index) in movies" :key="index" @click="searchAndPlay(item)">
+              <image class="movie-cover" :src="item.poster" mode="aspectFill" />
               <view class="movie-info">
                 <text class="movie-title">{{ item.title }}</text>
                 <text class="movie-rate" v-if="item.rate">{{ item.rate }}分</text>
@@ -31,8 +31,8 @@
         </view>
         <scroll-view scroll-x class="scroll-x">
           <view class="movie-list">
-            <view class="movie-card" v-for="(item, index) in tvShows" :key="index" @click="goDetail(item)">
-              <image class="movie-cover" :src="item.poster || item.cover" mode="aspectFill" />
+            <view class="movie-card" v-for="(item, index) in tvShows" :key="index" @click="searchAndPlay(item)">
+              <image class="movie-cover" :src="item.poster" mode="aspectFill" />
               <view class="movie-info">
                 <text class="movie-title">{{ item.title }}</text>
                 <text class="movie-rate" v-if="item.rate">{{ item.rate }}分</text>
@@ -48,8 +48,8 @@
         </view>
         <scroll-view scroll-x class="scroll-x">
           <view class="movie-list">
-            <view class="movie-card" v-for="(item, index) in varietyShows" :key="index" @click="goDetail(item)">
-              <image class="movie-cover" :src="item.poster || item.cover" mode="aspectFill" />
+            <view class="movie-card" v-for="(item, index) in varietyShows" :key="index" @click="searchAndPlay(item)">
+              <image class="movie-cover" :src="item.poster" mode="aspectFill" />
               <view class="movie-info">
                 <text class="movie-title">{{ item.title }}</text>
                 <text class="movie-rate" v-if="item.rate">{{ item.rate }}分</text>
@@ -94,9 +94,26 @@ export default {
     goSearch() {
       uni.navigateTo({ url: '/pages/search/search' })
     },
-    goDetail(item) {
-      uni.navigateTo({
-        url: '/pages/play/play?id=' + item.id + '&source=' + (item.source || '') + '&title=' + encodeURIComponent(item.title) + '&poster=' + encodeURIComponent(item.poster || '')
+    searchAndPlay(item) {
+      uni.showLoading({ title: '搜索中...' })
+      uni.request({
+        url: '/api/search?q=' + encodeURIComponent(item.title),
+        withCredentials: true,
+        success: (res) => {
+          uni.hideLoading()
+          if (res.data && res.data.results && res.data.results.length > 0) {
+            const first = res.data.results[0]
+            uni.navigateTo({
+              url: '/pages/play/play?title=' + encodeURIComponent(first.title) + '&data=' + encodeURIComponent(JSON.stringify(first))
+            })
+          } else {
+            uni.showToast({ title: '未找到播放源', icon: 'none' })
+          }
+        },
+        fail: () => {
+          uni.hideLoading()
+          uni.showToast({ title: '搜索失败', icon: 'none' })
+        }
       })
     },
     loadData() {
@@ -142,115 +159,24 @@ export default {
 </script>
 
 <style>
-.page {
-  height: 100vh;
-  background: #0f0f1a;
-  display: flex;
-  flex-direction: column;
-}
-
-.header {
-  padding: 24rpx;
-  padding-top: calc(24rpx + constant(safe-area-inset-top));
-  padding-top: calc(24rpx + env(safe-area-inset-top));
-  background: #1a1a2e;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.title {
-  color: #ff6b6b;
-  font-size: 40rpx;
-  font-weight: bold;
-}
-
-.search-btn {
-  padding: 12rpx 24rpx;
-  background: rgba(255, 107, 107, 0.2);
-  border-radius: 24rpx;
-}
-
-.search-btn text {
-  color: #ff6b6b;
-  font-size: 26rpx;
-}
-
-.content {
-  flex: 1;
-}
-
-.section {
-  margin-top: 24rpx;
-}
-
-.section-header {
-  padding: 16rpx 24rpx;
-}
-
-.section-title {
-  color: #fff;
-  font-size: 32rpx;
-  font-weight: bold;
-}
-
-.scroll-x {
-  white-space: nowrap;
-}
-
-.movie-list {
-  display: inline-flex;
-  padding: 0 24rpx;
-}
-
-.movie-card {
-  width: 200rpx;
-  margin-right: 16rpx;
-  flex-shrink: 0;
-}
-
-.movie-cover {
-  width: 200rpx;
-  height: 280rpx;
-  border-radius: 12rpx;
-  background: #1a1a2e;
-}
-
-.movie-info {
-  padding: 8rpx 0;
-}
-
-.movie-title {
-  color: #fff;
-  font-size: 26rpx;
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.movie-rate {
-  color: #f5a623;
-  font-size: 22rpx;
-}
-
-.login-tip {
-  padding: 100rpx;
-  text-align: center;
-}
-
-.login-tip text {
-  color: #ff6b6b;
-  font-size: 32rpx;
-}
-
-.loading {
-  padding: 32rpx;
-  text-align: center;
-}
-
-.loading text {
-  color: #888;
-  font-size: 26rpx;
-}
+.page { height: 100vh; background: #0f0f1a; display: flex; flex-direction: column; }
+.header { padding: 24rpx; padding-top: calc(24rpx + constant(safe-area-inset-top)); padding-top: calc(24rpx + env(safe-area-inset-top)); background: #1a1a2e; display: flex; align-items: center; justify-content: space-between; }
+.title { color: #ff6b6b; font-size: 40rpx; font-weight: bold; }
+.search-btn { padding: 12rpx 24rpx; background: rgba(255, 107, 107, 0.2); border-radius: 24rpx; }
+.search-btn text { color: #ff6b6b; font-size: 26rpx; }
+.content { flex: 1; }
+.section { margin-top: 24rpx; }
+.section-header { padding: 16rpx 24rpx; }
+.section-title { color: #fff; font-size: 32rpx; font-weight: bold; }
+.scroll-x { white-space: nowrap; }
+.movie-list { display: inline-flex; padding: 0 24rpx; }
+.movie-card { width: 200rpx; margin-right: 16rpx; flex-shrink: 0; }
+.movie-cover { width: 200rpx; height: 280rpx; border-radius: 12rpx; background: #1a1a2e; }
+.movie-info { padding: 8rpx 0; }
+.movie-title { color: #fff; font-size: 26rpx; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.movie-rate { color: #f5a623; font-size: 22rpx; }
+.login-tip { padding: 100rpx; text-align: center; }
+.login-tip text { color: #ff6b6b; font-size: 32rpx; }
+.loading { padding: 32rpx; text-align: center; }
+.loading text { color: #888; font-size: 26rpx; }
 </style>
