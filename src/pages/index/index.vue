@@ -433,29 +433,8 @@ export default {
     
     searchAndPlay(item) {
       const title = item.title || item.name
-      console.log('[Index] searching:', title)
-      uni.showLoading({ title: '搜索中...' })
-      uni.request({
-        url: '/api/search?q=' + encodeURIComponent(title),
-        withCredentials: true,
-        success: (res) => {
-          uni.hideLoading()
-          console.log('[Index] search response:', res.data)
-          if (res.data && res.data.results && res.data.results.length > 0) {
-            const first = res.data.results[0]
-            console.log('[Index] first result:', first)
-            uni.navigateTo({
-              url: '/pages/play/play?title=' + encodeURIComponent(first.title || title) + '&data=' + encodeURIComponent(JSON.stringify(first))
-            })
-          } else {
-            uni.showToast({ title: '未找到播放源', icon: 'none' })
-          }
-        },
-        fail: (err) => {
-          uni.hideLoading()
-          console.error('[Index] search failed:', err)
-          uni.showToast({ title: '搜索失败', icon: 'none' })
-        }
+      uni.navigateTo({
+        url: '/pages/play/play?q=' + encodeURIComponent(title) + '&title=' + encodeURIComponent(title)
       })
     },
     

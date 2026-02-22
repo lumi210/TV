@@ -446,27 +446,31 @@ export default {
       this.speedTestProgress = 0
       this.loadingMessage = '正在检测播放源速度...'
       
-      const results = []
       const total = this.allSources.length
       let tested = 0
       
-      for (let i = 0; i < this.allSources.length; i++) {
-        const source = this.allSources[i]
-        const result = await this.testSourceSpeed(source)
-        tested++
-        this.speedTestProgress = Math.round((tested / total) * 100)
-        
+      const testPromises = this.allSources.map((source, index) => {
+        return this.testSourceSpeed(source).then(result => {
+          tested++
+          this.speedTestProgress = Math.round((tested / total) * 100)
+          return { index, result }
+        })
+      })
+      
+      const testResults = await Promise.all(testPromises)
+      
+      const results = []
+      testResults.forEach(({ index, result }) => {
         if (result.available) {
           results.push({
-            ...source,
+            ...this.allSources[index],
             speed: result.speed,
             quality: result.quality,
             available: true
           })
         }
-      }
+      })
       
-      // 按速度排序
       results.sort((a, b) => {
         if (!a.speed) return 1
         if (!b.speed) return -1
@@ -477,7 +481,6 @@ export default {
       this.isLoading = false
       console.log('[Play] speed test done, available:', results.length)
       
-      // 如果测速全部失败，使用原始源列表
       if (results.length === 0) {
         console.log('[Play] speed test all failed, using original sources')
         this.availableSources = this.allSources.map((source, index) => ({
@@ -490,7 +493,6 @@ export default {
         this.availableSources = results
       }
       
-      // 测速完成后，使用最快的源播放
       if (this.availableSources.length > 0) {
         const bestSource = this.availableSources[0]
         this.currentSourceIndex = 0
@@ -506,7 +508,6 @@ export default {
         
         this.playEpisode(0)
         
-        // 自动播放
         this.$nextTick(() => {
           setTimeout(() => {
             const video = document.getElementById('video-player')
@@ -537,12 +538,12 @@ export default {
             resolved = true
             resolve({ available: false, speed: null, quality: null })
           }
-        }, 5000)
+        }, 3000)
         
         uni.request({
           url: url,
           method: 'HEAD',
-          timeout: 5000,
+          timeout: 3000,
           success: (res) => {
             if (!resolved) {
               resolved = true
