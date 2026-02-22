@@ -1,18 +1,17 @@
 <template>
   <view class="page">
     <view class="video-wrap">
-      <view v-if="videoUrl" class="video-container" id="video-container">
+      <view v-if="videoUrl" class="video-container">
         <video 
           id="video-player"
           class="video" 
-          :src="!useHls ? videoUrl : ''"
+          :src="videoUrl"
           :poster="poster" 
           controls 
           show-center-play-btn 
           enable-progress-gesture
           enable-play-gesture
-          :autoplay="autoplay"
-          :initial-time="resumeTime"
+          :autoplay="true"
           @play="onPlay"
           @pause="onPause"
           @error="onVideoError"
@@ -69,9 +68,6 @@
       <view class="source-section" v-if="allSources.length > 1">
         <view class="section-header">
           <text class="section-title">播放源 ({{ allSources.length }}个)</text>
-          <view class="source-speed-test" v-if="speedTestResults.length > 0">
-            <text class="speed-info">已测速</text>
-          </view>
         </view>
         <scroll-view scroll-x class="source-scroll" enable-flex>
           <view class="source-list">
@@ -84,7 +80,6 @@
             >
               <text class="source-name">{{ item.source_name || ('源' + (index + 1)) }}</text>
               <text class="source-eps" v-if="item.episodes && item.episodes.length > 0">{{ item.episodes.length }}集</text>
-              <text class="source-speed" v-if="speedTestResults[index]">{{ speedTestResults[index] }}</text>
             </view>
           </view>
         </scroll-view>
@@ -99,7 +94,7 @@
           <view class="episode-list">
             <view 
               class="episode-item" 
-              :class="{ active: currentEpisode === index, watched: isWatched(index) }" 
+              :class="{ active: currentEpisode === index }" 
               v-for="(ep, index) in currentEpisodes" 
               :key="index" 
               @click="playEpisode(index)"
@@ -135,8 +130,6 @@
 </template>
 
 <script>
-import Hls from 'hls.js'
-
 export default {
   data() {
     return {
@@ -160,14 +153,8 @@ export default {
       saveTimer: null,
       isFavorited: false,
       searchKeyword: '',
-      useHls: false,
-      hlsInstance: null,
-      autoplay: true,
-      resumeTime: 0,
       isBuffering: false,
       loadingText: '加载中...',
-      speedTestResults: [],
-      watchedEpisodes: new Set(),
       retryCount: 0,
       maxRetry: 3
     }
@@ -179,10 +166,6 @@ export default {
   },
   onLoad(options) {
     this.title = decodeURIComponent(options.title || '播放')
-    
-    if (options.time) {
-      this.resumeTime = parseInt(options.time) || 0
-    }
     
     if (options.data) {
       try {
@@ -199,19 +182,15 @@ export default {
       this.searchKeyword = decodeURIComponent(options.q)
       this.searchAndLoad(this.searchKeyword)
     }
-    
-    this.loadWatchedHistory()
   },
   onShow() {
     this.checkFavorite()
   },
   onUnload() {
     this.savePlayRecord()
-    this.saveWatchedHistory()
     if (this.saveTimer) {
       clearTimeout(this.saveTimer)
     }
-    this.destroyHls()
   },
   onHide() {
     this.savePlayRecord()
@@ -239,9 +218,7 @@ export default {
         }]
         this.currentEpisodes = data.episodes
         this.episodeTitles = data.episodes_titles || []
-        
-        const startEp = data.startEpisode || 0
-        this.playEpisode(startEp)
+        this.playEpisode(0)
       }
       
       this.isLoading = false
@@ -331,7 +308,6 @@ export default {
       
       console.log('[Play] switchSource:', index)
       this.savePlayRecord()
-      this.destroyHls()
       
       this.currentSourceIndex = index
       const source = this.allSources[index]
@@ -377,151 +353,17 @@ export default {
       
       console.log('[Play] video url:', url)
       
-      this.destroyHls()
       this.videoUrl = url
-      this.useHls = false
       this.retryCount = 0
       this.errorMessage = ''
-      
-      const isHlsVideo = url.includes('.m3u8')
-      
-      if (isHlsVideo && typeof document !== 'undefined') {
-        this.$nextTick(() => {
-          if (Hls && Hls.isSupported()) {
-            this.initHlsPlayer(url)
-          } else {
-            console.log('[Play] HLS not supported, use native')
-            this.useHls = false
-          }
-          this.isLoading = false
-        })
-      } else {
-        this.isLoading = false
-      }
+      this.isLoading = false
       
       this.checkFavorite()
     },
     
-    initHlsPlayer(url) {
-      console.log('[Play] initHlsPlayer:', url)
-      
-      const video = document.getElementById('video-player')
-      if (!video) {
-        console.error('[Play] video element not found')
-        this.useHls = false
-        return
-      }
-      
-      const bufferConfig = this.getHlsBufferConfig()
-      
-      this.hlsInstance = new Hls({
-        enableWorker: true,
-        lowLatencyMode: false,
-        backBufferLength: bufferConfig.backBufferLength,
-        maxBufferLength: bufferConfig.maxBufferLength,
-        maxBufferSize: bufferConfig.maxBufferSize,
-        maxMaxBufferLength: bufferConfig.maxBufferLength,
-        startLevel: -1,
-        autoStartLoad: true,
-        xhrSetup: (xhr) => {
-          xhr.withCredentials = false
-          xhr.timeout = 30000
-        },
-        fragLoadingTimeOut: 30000,
-        fragLoadingMaxRetry: 6,
-        fragLoadingRetryDelay: 1000,
-        levelLoadingTimeOut: 15000,
-        levelLoadingMaxRetry: 4,
-        levelLoadingRetryDelay: 1000,
-        manifestLoadingTimeOut: 15000,
-        manifestLoadingMaxRetry: 4,
-        manifestLoadingRetryDelay: 1000
-      })
-      
-      this.hlsInstance.loadSource(url)
-      this.hlsInstance.attachMedia(video)
-      
-      this.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log('[Play] HLS manifest parsed')
-        this.useHls = true
-        this.isBuffering = false
-        this.errorMessage = ''
-        video.play().catch(e => {
-          console.warn('[Play] autoplay failed:', e)
-        })
-      })
-      
-      this.hlsInstance.on(Hls.Events.FRAG_LOADED, () => {
-        this.isBuffering = false
-      })
-      
-      this.hlsInstance.on(Hls.Events.FRAG_LOAD_EMERGENCY_ABORTED, () => {
-        console.warn('[Play] frag load emergency aborted')
-      })
-      
-      this.hlsInstance.on(Hls.Events.ERROR, (event, data) => {
-        console.error('[Play] HLS error:', data.type, data.details, data)
-        
-        if (data.fatal) {
-          switch (data.type) {
-            case Hls.ErrorTypes.NETWORK_ERROR:
-              console.log('[Play] Network error, trying to recover')
-              this.loadingText = '网络错误，正在重试...'
-              this.isBuffering = true
-              if (this.retryCount < this.maxRetry) {
-                this.retryCount++
-                this.hlsInstance.startLoad()
-              } else {
-                this.showErrorMessage('网络错误，播放失败')
-              }
-              break
-            case Hls.ErrorTypes.MEDIA_ERROR:
-              console.log('[Play] Media error, trying to recover')
-              this.hlsInstance.recoverMediaError()
-              break
-            default:
-              console.error('[Play] Fatal error, cannot recover')
-              this.showErrorMessage('播放失败，请尝试其他源')
-              this.destroyHls()
-              break
-          }
-        }
-      })
-    },
-    
-    getHlsBufferConfig() {
-      return {
-        maxBufferLength: 30,
-        backBufferLength: 30,
-        maxBufferSize: 60 * 1000 * 1000
-      }
-    },
-    
-    destroyHls() {
-      if (this.hlsInstance) {
-        this.hlsInstance.destroy()
-        this.hlsInstance = null
-        this.useHls = false
-      }
-    },
-    
-    showErrorMessage(msg) {
-      this.errorMessage = msg
-      this.isBuffering = false
-      uni.showToast({ title: msg, icon: 'none' })
-    },
-    
-    retryLoad() {
-      console.log('[Play] retryLoad')
-      this.errorMessage = ''
-      this.retryCount = 0
-      if (this.currentEpisode >= 0) {
-        this.playEpisode(this.currentEpisode)
-      }
-    },
-    
     onPlay() {
       console.log('[Play] onPlay')
+      this.isBuffering = false
     },
     
     onPause() {
@@ -556,7 +398,6 @@ export default {
     onEnded() {
       console.log('[Play] onEnded')
       this.savePlayRecord()
-      this.markWatched(this.currentEpisode)
       
       if (this.currentEpisodes.length > this.currentEpisode + 1) {
         this.currentEpisode++
@@ -572,13 +413,24 @@ export default {
       
       if (this.retryCount < this.maxRetry) {
         this.retryCount++
-        this.loadingText = '播放出错，正在重试...'
         this.isBuffering = true
+        this.loadingText = '播放出错，正在重试...'
         setTimeout(() => {
           this.playEpisode(this.currentEpisode)
         }, 1000)
       } else {
-        this.showErrorMessage('视频播放失败，请尝试其他源')
+        this.isBuffering = false
+        this.errorMessage = '视频播放失败，请尝试其他源'
+        uni.showToast({ title: '视频播放失败', icon: 'none' })
+      }
+    },
+    
+    retryLoad() {
+      console.log('[Play] retryLoad')
+      this.errorMessage = ''
+      this.retryCount = 0
+      if (this.currentEpisode >= 0) {
+        this.playEpisode(this.currentEpisode)
       }
     },
     
@@ -590,39 +442,6 @@ export default {
         return (index + 1)
       }
       return '第' + (index + 1) + '集'
-    },
-    
-    isWatched(index) {
-      const key = this.getWatchKey(index)
-      return this.watchedEpisodes.has(key)
-    },
-    
-    markWatched(index) {
-      const key = this.getWatchKey(index)
-      this.watchedEpisodes.add(key)
-    },
-    
-    getWatchKey(index) {
-      return `${this.id}_${this.currentSourceIndex}_${index}`
-    },
-    
-    loadWatchedHistory() {
-      try {
-        const data = uni.getStorageSync('watched_history')
-        if (data) {
-          this.watchedEpisodes = new Set(JSON.parse(data))
-        }
-      } catch (e) {
-        console.error('[Play] load watched history error:', e)
-      }
-    },
-    
-    saveWatchedHistory() {
-      try {
-        uni.setStorageSync('watched_history', JSON.stringify([...this.watchedEpisodes]))
-      } catch (e) {
-        console.error('[Play] save watched history error:', e)
-      }
     },
     
     getPoster(item) {
@@ -967,11 +786,6 @@ export default {
   font-weight: bold;
 }
 
-.speed-info {
-  color: $color-success;
-  font-size: 24rpx;
-}
-
 .episode-header {
   display: flex;
   justify-content: space-between;
@@ -1016,10 +830,6 @@ export default {
       color: #fff;
     }
   }
-  
-  &.watched {
-    opacity: 0.6;
-  }
 }
 
 .source-name {
@@ -1028,12 +838,6 @@ export default {
 
 .source-eps {
   font-size: 20rpx;
-  margin-top: 4rpx;
-}
-
-.source-speed {
-  font-size: 18rpx;
-  color: $color-success;
   margin-top: 4rpx;
 }
 
