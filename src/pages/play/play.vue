@@ -627,7 +627,7 @@ export default {
     },
     
     playShortDramaEpisode(episodeUrl) {
-      console.log('[Play] playShortDramaEpisode:', episodeUrl)
+      console.log('[Play] playShortDramaEpisode:', episodeUrl, 'title:', this.title)
       this.isBuffering = true
       this.loadingText = '正在获取播放地址...'
       this.errorMessage = ''
@@ -643,13 +643,24 @@ export default {
       const id = parts[1]
       const episode = parseInt(parts[2]) + 1
       
+      const dramaName = this.title || ''
+      const apiUrl = '/api/shortdrama/parse?id=' + id + '&episode=' + episode + '&proxy=true&name=' + encodeURIComponent(dramaName)
+      console.log('[Play] request url:', apiUrl)
+      
       uni.request({
-        url: '/api/shortdrama/parse?id=' + id + '&episode=' + episode + '&proxy=true&name=' + encodeURIComponent(this.title || ''),
+        url: apiUrl,
         withCredentials: true,
         success: (res) => {
-          console.log('[Play] shortdrama parse response:', res.statusCode, JSON.stringify(res.data || {}).substring(0, 500))
+          console.log('[Play] shortdrama parse response:', res.statusCode, JSON.stringify(res.data || {}).substring(0, 800))
           
           if (res.statusCode === 200 && res.data) {
+            if (res.data.error) {
+              this.isBuffering = false
+              this.isLoading = false
+              this.errorMessage = res.data.error
+              return
+            }
+            
             const playUrl = res.data.url || res.data.proxyUrl
             if (playUrl) {
               this.videoUrl = playUrl
