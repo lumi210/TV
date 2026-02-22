@@ -8,27 +8,54 @@
       <scroll-view scroll-x class="source-scroll">
         <view class="source-list">
           <view class="source-item" :class="{ active: currentSource === index }" v-for="(item, index) in sources" :key="index" @click="selectSource(index)">
-            <text>{{ item.name }}</text>
+            <text>{{ item.name || item.title }}</text>
           </view>
         </view>
       </scroll-view>
     </view>
 
+    <view class="search-bar" v-if="channels.length > 0">
+      <input class="search-input" :value="searchKeyword" @input="onSearchInput" placeholder="搜索频道..." />
+      <view class="clear-btn" v-if="searchKeyword" @click="clearSearch">
+        <text>X</text>
+      </view>
+    </view>
+
     <scroll-view scroll-y class="content">
       <view class="channel-list">
-        <view class="channel-item" v-for="(item, index) in channels" :key="index" @click="playChannel(item)">
+        <view class="channel-item" v-for="(item, index) in displayChannels" :key="index" @click="playChannel(item)">
           <image class="channel-logo" :src="item.logo" mode="aspectFit" />
-          <text class="channel-name">{{ item.name }}</text>
+          <view class="channel-info">
+            <text class="channel-name">{{ item.name }}</text>
+            <text class="channel-group" v-if="item.group">{{ item.group }}</text>
+          </view>
         </view>
       </view>
 
       <view class="loading" v-if="loading">
+        <view class="loading-spinner"></view>
         <text>加载中...</text>
       </view>
 
-      <view class="empty" v-if="!loading && channels.length === 0">
-        <text>暂无直播频道</text>
+      <view class="empty" v-if="!loading && sources.length === 0">
+        <text class="empty-icon">&#128250;</text>
+        <text class="empty-text">暂无直播源</text>
+        <text class="empty-tip">请在后台配置直播源</text>
       </view>
+
+      <view class="empty" v-if="!loading && sources.length > 0 && channels.length === 0">
+        <text class="empty-icon">&#128250;</text>
+        <text class="empty-text">暂无直播频道</text>
+        <text class="empty-tip">请检查直播源配置</text>
+      </view>
+
+      <view class="empty" v-if="!loading && searchKeyword && filteredChannels.length === 0">
+        <text class="empty-icon">&#128269;</text>
+        <text class="empty-text">未找到匹配的频道</text>
+        <text class="empty-tip">试试其他关键词</text>
+      </view>
+      
+      <view class="safe-area-bottom"></view>
     </scroll-view>
 
     <view class="player-modal" v-if="playingChannel" @click="closePlayer">
@@ -53,7 +80,17 @@ export default {
       sources: [],
       currentSource: 0,
       channels: [],
-      playingChannel: null
+      playingChannel: null,
+      searchKeyword: '',
+      filteredChannels: []
+    }
+  },
+  computed: {
+    displayChannels() {
+      if (this.searchKeyword) {
+        return this.filteredChannels
+      }
+      return this.channels
     }
   },
   onShow() {
@@ -61,52 +98,118 @@ export default {
   },
   methods: {
     loadSources() {
+      this.loading = true
       uni.request({
         url: '/api/live/sources',
         withCredentials: true,
         success: (res) => {
-          if (res.data && res.data.sources) {
-            this.sources = res.data.sources
-            if (this.sources.length > 0) {
-              this.loadChannels(this.sources[0].key)
+          console.log('[Live] sources response:', res.data)
+          if (res.statusCode === 200 && res.data) {
+            if (res.data.sources && Array.isArray(res.data.sources)) {
+              this.sources = res.data.sources
+            } else if (Array.isArray(res.data)) {
+              this.sources = res.data
             }
+            if (this.sources.length > 0) {
+              this.loadChannels(this.sources[0].key || this.sources[0].name || this.sources[0].id)
+            } else {
+              this.loading = false
+            }
+          } else {
+            this.loading = false
           }
+        },
+        fail: (err) => {
+          console.error('[Live] load sources failed:', err)
+          this.loading = false
+          uni.showToast({ title: '加载直播源失败', icon: 'none' })
         }
       })
     },
     loadChannels(sourceKey) {
+      if (!sourceKey) {
+        this.loading = false
+        return
+      }
       this.loading = true
+      this.channels = []
       uni.request({
-        url: '/api/live/channels?source=' + sourceKey,
+        url: '/api/live/channels?source=' + encodeURIComponent(sourceKey),
         withCredentials: true,
         success: (res) => {
-          if (res.data && res.data.data) {
-            this.channels = res.data.data
+          console.log('[Live] channels response:', res.data)
+          if (res.statusCode === 200 && res.data) {
+            if (res.data.data && Array.isArray(res.data.data)) {
+              this.channels = this.parseChannels(res.data.data)
+            } else if (res.data.channels && Array.isArray(res.data.channels)) {
+              this.channels = this.parseChannels(res.data.channels)
+            } else if (res.data.list && Array.isArray(res.data.list)) {
+              this.channels = this.parseChannels(res.data.list)
+            } else if (Array.isArray(res.data)) {
+              this.channels = this.parseChannels(res.data)
+            }
+            console.log('[Live] parsed channels:', this.channels.length)
           }
+        },
+        fail: (err) => {
+          console.error('[Live] load channels failed:', err)
+          uni.showToast({ title: '加载频道失败', icon: 'none' })
         },
         complete: () => {
           this.loading = false
         }
       })
     },
+    parseChannels(data) {
+      return data.map(item => ({
+        name: item.name || item.title || item.channelName || '未知频道',
+        url: item.url || item.stream || item.playUrl || item.link || '',
+        logo: item.logo || item.icon || item.pic || item.image || '',
+        group: item.group || item.category || item.type || ''
+      }))
+    },
     selectSource(index) {
       this.currentSource = index
-      this.loadChannels(this.sources[index].key)
+      this.searchKeyword = ''
+      this.filteredChannels = []
+      const source = this.sources[index]
+      this.loadChannels(source.key || source.name || source.id)
     },
     playChannel(channel) {
+      if (!channel.url) {
+        uni.showToast({ title: '该频道暂无播放地址', icon: 'none' })
+        return
+      }
       this.playingChannel = channel
     },
     closePlayer() {
       this.playingChannel = null
+    },
+    onSearchInput(e) {
+      this.searchKeyword = e.detail.value.toLowerCase()
+      if (this.searchKeyword) {
+        this.filteredChannels = this.channels.filter(ch => 
+          (ch.name && ch.name.toLowerCase().includes(this.searchKeyword)) ||
+          (ch.group && ch.group.toLowerCase().includes(this.searchKeyword))
+        )
+      } else {
+        this.filteredChannels = []
+      }
+    },
+    clearSearch() {
+      this.searchKeyword = ''
+      this.filteredChannels = []
     }
   }
 }
 </script>
 
-<style>
+<style lang="scss">
+@import '../../styles/common.scss';
+
 .page {
   height: 100vh;
-  background: #0f0f1a;
+  background: $color-bg;
   display: flex;
   flex-direction: column;
 }
@@ -115,17 +218,17 @@ export default {
   padding: 24rpx;
   padding-top: calc(24rpx + constant(safe-area-inset-top));
   padding-top: calc(24rpx + env(safe-area-inset-top));
-  background: #1a1a2e;
+  background: $color-bg-secondary;
 }
 
 .header-title {
-  color: #fff;
+  color: $color-text;
   font-size: 36rpx;
   font-weight: bold;
 }
 
 .source-bar {
-  background: #1a1a2e;
+  background: $color-bg-secondary;
   padding: 16rpx 0;
 }
 
@@ -141,21 +244,54 @@ export default {
 
 .source-item {
   padding: 12rpx 24rpx;
-  background: #0f0f1a;
+  background: $color-bg;
   border-radius: 24rpx;
+  
+  text {
+    color: $color-text-muted;
+    font-size: 26rpx;
+  }
+  
+  &.active {
+    background: $color-primary;
+    
+    text {
+      color: $color-text;
+    }
+  }
 }
 
-.source-item text {
-  color: #888;
+.search-bar {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 24rpx;
+  background: $color-bg-secondary;
+  gap: 16rpx;
+}
+
+.search-input {
+  flex: 1;
+  height: 64rpx;
+  padding: 0 20rpx;
+  background: $color-bg;
+  border-radius: 32rpx;
+  color: $color-text;
   font-size: 26rpx;
 }
 
-.source-item.active {
-  background: #ff6b6b;
-}
-
-.source-item.active text {
-  color: #fff;
+.clear-btn {
+  width: 48rpx;
+  height: 48rpx;
+  background: $color-bg;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  
+  text {
+    color: $color-text-muted;
+    font-size: 24rpx;
+  }
 }
 
 .content {
@@ -170,29 +306,85 @@ export default {
   display: flex;
   align-items: center;
   padding: 24rpx 0;
-  border-bottom: 1rpx solid #1a1a2e;
+  border-bottom: 1rpx solid $color-border;
 }
 
 .channel-logo {
   width: 80rpx;
   height: 80rpx;
   border-radius: 12rpx;
-  background: #1a1a2e;
+  background: $color-bg-secondary;
+}
+
+.channel-info {
+  flex: 1;
+  margin-left: 24rpx;
 }
 
 .channel-name {
-  margin-left: 24rpx;
-  color: #fff;
+  color: $color-text;
   font-size: 30rpx;
+  display: block;
 }
 
-.loading, .empty {
+.channel-group {
+  color: $color-text-muted;
+  font-size: 24rpx;
+  margin-top: 4rpx;
+  display: block;
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 48rpx;
-  text-align: center;
+  
+  text {
+    color: $color-text-muted;
+    font-size: 26rpx;
+    margin-top: 16rpx;
+  }
 }
 
-.loading text, .empty text {
-  color: #888;
+.loading-spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid $color-bg-tertiary;
+  border-top-color: $color-primary;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 48rpx;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.empty-text {
+  color: $color-text;
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-bottom: 12rpx;
+}
+
+.empty-tip {
+  color: $color-text-muted;
+  font-size: 26rpx;
 }
 
 .player-modal {
@@ -210,6 +402,7 @@ export default {
 
 .player-wrap {
   width: 100%;
+  position: relative;
 }
 
 .player-video {
@@ -219,11 +412,11 @@ export default {
 
 .player-info {
   padding: 24rpx;
-  background: #1a1a2e;
+  background: $color-bg-secondary;
 }
 
 .player-title {
-  color: #fff;
+  color: $color-text;
   font-size: 32rpx;
 }
 
@@ -238,10 +431,10 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-}
-
-.close-btn text {
-  color: #fff;
-  font-size: 28rpx;
+  
+  text {
+    color: $color-text;
+    font-size: 28rpx;
+  }
 }
 </style>
