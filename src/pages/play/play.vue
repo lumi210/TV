@@ -641,7 +641,7 @@ export default {
       }
       
       const id = parts[1]
-      const episode = parseInt(parts[2]) + 1
+      const episode = parseInt(parts[2])
       
       const dramaName = this.title || ''
       const apiUrl = '/api/shortdrama/parse?id=' + id + '&episode=' + episode + '&proxy=true&name=' + encodeURIComponent(dramaName)
