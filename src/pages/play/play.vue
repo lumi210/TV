@@ -65,65 +65,77 @@
         <text class="desc" v-if="info.desc">{{ info.desc }}</text>
       </view>
 
-      <view class="source-section" v-if="allSources.length > 1">
-        <view class="section-header">
-          <text class="section-title">播放源 ({{ allSources.length }}个)</text>
+      <!-- Tab 切换 -->
+      <view class="tab-container">
+        <view 
+          class="tab-item" 
+          :class="{ active: activeTab === 'episodes' }" 
+          @click="activeTab = 'episodes'"
+        >
+          <text>选集</text>
         </view>
-        <scroll-view scroll-x class="source-scroll" enable-flex>
-          <view class="source-list">
-            <view 
-              class="source-item" 
-              :class="{ active: currentSourceIndex === index }" 
-              v-for="(item, index) in allSources" 
-              :key="index" 
-              @click="switchSource(index)"
-            >
-              <text class="source-name">{{ item.source_name || ('源' + (index + 1)) }}</text>
-              <text class="source-eps" v-if="item.episodes && item.episodes.length > 0">{{ item.episodes.length }}集</text>
-            </view>
-          </view>
-        </scroll-view>
+        <view 
+          class="tab-item" 
+          :class="{ active: activeTab === 'sources' }" 
+          @click="activeTab = 'sources'"
+        >
+          <text>换源</text>
+          <text class="source-count" v-if="allSources.length > 1">({{ allSources.length }})</text>
+        </view>
       </view>
 
-      <view class="episode-section" v-if="currentEpisodes.length > 0">
-        <view class="episode-header">
-          <text class="section-title">选集 (共{{ currentEpisodes.length }}集)</text>
-          <text class="current-ep" v-if="currentEpisode >= 0">播放: 第{{ currentEpisode + 1 }}集</text>
-        </view>
-        <scroll-view scroll-x class="episode-scroll" enable-flex>
-          <view class="episode-list">
-            <view 
-              class="episode-item" 
-              :class="{ active: currentEpisode === index }" 
-              v-for="(ep, index) in currentEpisodes" 
-              :key="index" 
-              @click="playEpisode(index)"
-            >
-              <text>{{ getEpisodeTitle(index) }}</text>
+      <!-- 选集 Tab 内容 -->
+      <view v-if="activeTab === 'episodes'" class="tab-content">
+        <!-- 当前源的集数 -->
+        <view class="episode-section" v-if="currentEpisodes.length > 0">
+          <scroll-view scroll-x class="episode-scroll" enable-flex>
+            <view class="episode-list">
+              <view 
+                class="episode-item" 
+                :class="{ active: currentEpisode === index }" 
+                v-for="(ep, index) in currentEpisodes" 
+                :key="index" 
+                @click="playEpisode(index)"
+              >
+                <text>{{ getEpisodeTitle(index) }}</text>
+              </view>
             </view>
-          </view>
-        </scroll-view>
+          </scroll-view>
+        </view>
       </view>
 
-      <view class="other-sources-section" v-if="otherResults.length > 0">
-        <text class="section-title">其他播放源 ({{ otherResults.length }}个)</text>
-        <view class="other-list">
+      <!-- 换源 Tab 内容 -->
+      <view v-if="activeTab === 'sources'" class="tab-content">
+        <view class="source-list-vertical">
           <view 
-            class="other-item" 
-            v-for="(item, index) in otherResults" 
+            class="source-card" 
+            :class="{ active: currentSourceIndex === index }" 
+            v-for="(item, index) in allSources" 
             :key="index" 
-            @click="loadOtherSource(item)"
+            @click="switchSource(index)"
           >
-            <image class="other-cover" :src="getPoster(item)" mode="aspectFill" lazy-load />
-            <view class="other-info">
-              <text class="other-title">{{ item.title }}</text>
-              <text class="other-source-name">{{ item.source_name }}</text>
-              <text class="other-eps" v-if="item.episodes && item.episodes.length > 0">共{{ item.episodes.length }}集</text>
+            <view class="source-card-main">
+              <view class="source-card-info">
+                <text class="source-card-name">{{ item.source_name || ('源' + (index + 1)) }}</text>
+                <text class="source-card-eps" v-if="item.episodes && item.episodes.length > 0">共{{ item.episodes.length }}集</text>
+              </view>
+              <view class="source-card-status">
+                <text class="status-tag playing" v-if="currentSourceIndex === index">播放中</text>
+                <text class="status-tag" v-else>点击切换</text>
+              </view>
+            </view>
+            <view class="source-card-meta" v-if="item.source">
+              <text class="source-id">ID: {{ item.source }}</text>
             </view>
           </view>
         </view>
+
+        <view class="source-tip" v-if="allSources.length <= 1">
+          <text>暂无其他播放源</text>
+          <text class="tip-sub">当前仅找到一个播放源</text>
+        </view>
       </view>
-      
+
       <view class="safe-area-bottom"></view>
     </scroll-view>
   </view>
@@ -156,7 +168,8 @@ export default {
       isBuffering: false,
       loadingText: '加载中...',
       retryCount: 0,
-      maxRetry: 3
+      maxRetry: 3,
+      activeTab: 'episodes'
     }
   },
   computed: {
@@ -314,21 +327,13 @@ export default {
       if (source && source.episodes && source.episodes.length > 0) {
         this.currentEpisodes = source.episodes
         this.episodeTitles = source.episodes_titles || []
+        this.currentEpisode = 0
         this.playEpisode(0)
-      }
-    },
-    
-    loadOtherSource(item) {
-      console.log('[Play] loadOtherSource:', item.source_name)
-      if (item.episodes && item.episodes.length > 0) {
-        this.allSources.push({
-          source: item.source,
-          source_name: item.source_name || '新源',
-          episodes: item.episodes,
-          episodes_titles: item.episodes_titles || [],
-          originalData: item
+        
+        uni.showToast({ 
+          title: '已切换到 ' + (source.source_name || ('源' + (index + 1))), 
+          icon: 'none' 
         })
-        this.switchSource(this.allSources.length - 1)
       }
     },
     
@@ -421,7 +426,19 @@ export default {
       } else {
         this.isBuffering = false
         this.errorMessage = '视频播放失败，请尝试其他源'
-        uni.showToast({ title: '视频播放失败', icon: 'none' })
+        
+        // 如果有多个源，提示切换
+        if (this.allSources.length > 1) {
+          uni.showModal({
+            title: '播放失败',
+            content: '当前源播放失败，是否切换到其他播放源？',
+            success: (res) => {
+              if (res.confirm) {
+                this.activeTab = 'sources'
+              }
+            }
+          })
+        }
       }
     },
     
@@ -442,13 +459,6 @@ export default {
         return (index + 1)
       }
       return '第' + (index + 1) + '集'
-    },
-    
-    getPoster(item) {
-      if (!item.poster && !item.cover && !item.pic) {
-        return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMTQwIDIwMCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIyMDAiLz48dGV4dCB4PSI3MCIgeT0iMTAwIiBmaWxsPSIjODg4IiBmb250LXNpemU9IjEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIj7ml6DmtITlm77niYc8L3RleHQ+PC9zdmc+'
-      }
-      return this.proxyImage(item.poster || item.cover || item.pic)
     },
     
     proxyImage(url) {
@@ -769,54 +779,78 @@ export default {
   overflow: hidden;
 }
 
-.source-section, .episode-section, .other-sources-section {
+/* Tab 切换样式 */
+.tab-container {
+  display: flex;
+  background: $color-bg-secondary;
+  border-bottom: 1rpx solid $color-border;
+}
+
+.tab-item {
+  flex: 1;
+  padding: 24rpx 0;
+  text-align: center;
+  position: relative;
+  
+  text {
+    color: $color-text-muted;
+    font-size: 28rpx;
+    font-weight: 500;
+  }
+  
+  &.active {
+    text {
+      color: $color-primary;
+      font-weight: bold;
+    }
+    
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 48rpx;
+      height: 4rpx;
+      background: $color-primary;
+      border-radius: 2rpx;
+    }
+  }
+}
+
+.source-count {
+  font-size: 22rpx;
+  margin-left: 4rpx;
+}
+
+.tab-content {
   padding: 24rpx;
 }
 
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* 选集样式 */
+.episode-section {
   margin-bottom: 16rpx;
 }
 
-.section-title {
-  color: $color-text;
-  font-size: 30rpx;
-  font-weight: bold;
-}
-
-.episode-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16rpx;
-}
-
-.current-ep {
-  color: $color-secondary;
-  font-size: 24rpx;
-}
-
-.source-scroll, .episode-scroll {
+.episode-scroll {
   width: 100%;
 }
 
-.source-list, .episode-list {
+.episode-list {
   display: flex;
   flex-direction: row;
   gap: 12rpx;
   padding-bottom: 8rpx;
 }
 
-.source-item, .episode-item {
+.episode-item {
   padding: 16rpx 24rpx;
   background: $color-bg-secondary;
   border-radius: 24rpx;
   flex-shrink: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
   
   text {
     color: $color-text-muted;
@@ -832,76 +866,99 @@ export default {
   }
 }
 
-.source-name {
-  font-size: 26rpx;
-}
-
-.source-eps {
-  font-size: 20rpx;
-  margin-top: 4rpx;
-}
-
-.other-list {
-  margin-top: 16rpx;
-}
-
-.other-item {
-  display: flex;
-  padding: 16rpx;
-  background: $color-bg-secondary;
-  border-radius: 12rpx;
-  margin-bottom: 12rpx;
-}
-
-.other-cover {
-  width: 120rpx;
-  height: 160rpx;
-  border-radius: 8rpx;
-  flex-shrink: 0;
-}
-
-.other-info {
-  flex: 1;
-  padding-left: 16rpx;
+/* 换源列表样式 */
+.source-list-vertical {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  gap: 16rpx;
 }
 
-.other-title {
+.source-card {
+  background: $color-bg-secondary;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  border: 2rpx solid transparent;
+  
+  &.active {
+    border-color: $color-primary;
+    background: rgba($color-primary, 0.1);
+  }
+}
+
+.source-card-main {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.source-card-info {
+  flex: 1;
+}
+
+.source-card-name {
   color: $color-text;
-  font-size: 28rpx;
+  font-size: 30rpx;
   font-weight: bold;
-  margin-bottom: 8rpx;
+  display: block;
 }
 
-.other-source-name {
-  color: $color-secondary;
-  font-size: 24rpx;
-  margin-bottom: 4rpx;
-}
-
-.other-eps {
+.source-card-eps {
   color: $color-text-muted;
+  font-size: 24rpx;
+  margin-top: 8rpx;
+  display: block;
+}
+
+.source-card-status {
+  flex-shrink: 0;
+  margin-left: 16rpx;
+}
+
+.status-tag {
+  padding: 8rpx 16rpx;
+  background: $color-bg;
+  border-radius: 16rpx;
   font-size: 22rpx;
+  color: $color-text-muted;
+  
+  &.playing {
+    background: rgba($color-primary, 0.2);
+    color: $color-primary;
+  }
+}
+
+.source-card-meta {
+  margin-top: 12rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid $color-border;
+}
+
+.source-id {
+  font-size: 22rpx;
+  color: $color-text-muted;
+  font-family: monospace;
+}
+
+.source-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60rpx 0;
+  
+  text {
+    color: $color-text-muted;
+    font-size: 28rpx;
+  }
+  
+  .tip-sub {
+    font-size: 24rpx;
+    margin-top: 8rpx;
+  }
 }
 
 .safe-area-bottom {
   height: constant(safe-area-inset-bottom);
   height: env(safe-area-inset-bottom);
-}
-
-@media screen and (min-width: 768px) {
-  .video-wrap {
-    max-height: 420rpx;
-  }
-  
-  .episode-list {
-    flex-wrap: wrap;
-  }
-  
-  .episode-item {
-    flex-shrink: 1;
-  }
 }
 </style>
