@@ -1,5 +1,13 @@
 <template>
   <view class="page">
+    <view class="custom-navbar">
+      <view class="navbar-back" @click="goBack">
+        <text class="back-icon">&lt;</text>
+      </view>
+      <text class="navbar-title">{{ title || '播放' }}</text>
+      <view class="navbar-placeholder"></view>
+    </view>
+    
     <view class="video-wrap">
       <view v-if="videoUrl" class="video-container">
         <video 
@@ -225,6 +233,10 @@ export default {
     this.savePlayRecord()
   },
   methods: {
+    goBack() {
+      uni.navigateBack()
+    },
+    
     async loadShortDramaDetail(id, title) {
       console.log('[Play] loadShortDramaDetail:', id, title)
       this.loadingMessage = '正在加载短剧详情...'
@@ -1064,6 +1076,52 @@ export default {
   background: $color-bg;
   display: flex;
   flex-direction: column;
+  padding-top: 88rpx;
+}
+
+.custom-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 88rpx;
+  background: $color-bg-secondary;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24rpx;
+  padding-top: constant(safe-area-inset-top);
+  padding-top: env(safe-area-inset-top);
+  z-index: 100;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.3);
+}
+
+.navbar-back {
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.back-icon {
+  color: $color-text;
+  font-size: 40rpx;
+  font-weight: bold;
+}
+
+.navbar-title {
+  color: $color-text;
+  font-size: 32rpx;
+  font-weight: bold;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navbar-placeholder {
+  width: 60rpx;
 }
 
 .video-wrap {
