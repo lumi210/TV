@@ -360,6 +360,16 @@ export default {
         })
         
         this.playEpisode(0)
+        
+        // 自动播放
+        this.$nextTick(() => {
+          setTimeout(() => {
+            const video = document.getElementById('video-player')
+            if (video) {
+              video.play().catch(e => console.warn('[Play] autoplay failed:', e))
+            }
+          }, 500)
+        })
       } else {
         this.errorMessage = '所有播放源均不可用'
       }
