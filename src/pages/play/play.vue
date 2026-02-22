@@ -1,27 +1,48 @@
 <template>
   <view class="page">
     <view class="video-wrap">
-      <view v-if="videoUrl" class="video" id="hls-video-container">
+      <view v-if="videoUrl" class="video-container" id="video-container">
         <video 
-          id="hls-video"
+          id="video-player"
           class="video" 
-          :src="!isHls ? videoUrl : ''"
+          :src="!useHls ? videoUrl : ''"
           :poster="poster" 
           controls 
           show-center-play-btn 
           enable-progress-gesture
           enable-play-gesture
-          :autoplay="true"
+          :autoplay="autoplay"
+          :initial-time="resumeTime"
+          @play="onPlay"
+          @pause="onPause"
           @error="onVideoError"
           @timeupdate="onTimeUpdate" 
           @ended="onEnded"
+          @waiting="onWaiting"
+          @playing="onPlaying"
           x5-video-player-type="h5"
           x5-video-player="true"
         />
+        <view v-if="isBuffering" class="loading-overlay">
+          <view class="loading-spinner"></view>
+          <text class="loading-text">{{ loadingText }}</text>
+        </view>
       </view>
       <view class="video-placeholder" v-else>
-        <text v-if="loading">加载中...</text>
-        <text v-else>视频加载失败</text>
+        <view v-if="isLoading" class="loading-state">
+          <view class="loading-spinner"></view>
+          <text class="loading-text">{{ loadingMessage }}</text>
+        </view>
+        <view v-else-if="errorMessage" class="error-state">
+          <text class="error-icon">&#9888;</text>
+          <text class="error-text">{{ errorMessage }}</text>
+          <view class="retry-btn" @click="retryLoad">
+            <text>重试</text>
+          </view>
+        </view>
+        <view v-else class="empty-state">
+          <text>暂无视频</text>
+        </view>
       </view>
     </view>
 
@@ -40,13 +61,18 @@
           <text class="year" v-if="info.year">{{ info.year }}</text>
           <text class="type-name" v-if="info.type_name">{{ info.type_name }}</text>
           <text class="rate" v-if="info.rate">{{ info.rate }}分</text>
+          <text class="source-badge" v-if="currentSource">{{ currentSource.source_name }}</text>
         </view>
         <text class="desc" v-if="info.desc">{{ info.desc }}</text>
       </view>
 
-      <!-- 聚合的播放源列表 -->
-      <view class="source-section" v-if="allSources.length > 0">
-        <text class="section-title">播放源 ({{ allSources.length }}个)</text>
+      <view class="source-section" v-if="allSources.length > 1">
+        <view class="section-header">
+          <text class="section-title">播放源 ({{ allSources.length }}个)</text>
+          <view class="source-speed-test" v-if="speedTestResults.length > 0">
+            <text class="speed-info">已测速</text>
+          </view>
+        </view>
         <scroll-view scroll-x class="source-scroll" enable-flex>
           <view class="source-list">
             <view 
@@ -56,24 +82,24 @@
               :key="index" 
               @click="switchSource(index)"
             >
-              <text class="source-name">{{ item.source_name || item.name || ('源' + (index + 1)) }}</text>
+              <text class="source-name">{{ item.source_name || ('源' + (index + 1)) }}</text>
               <text class="source-eps" v-if="item.episodes && item.episodes.length > 0">{{ item.episodes.length }}集</text>
+              <text class="source-speed" v-if="speedTestResults[index]">{{ speedTestResults[index] }}</text>
             </view>
           </view>
         </scroll-view>
       </view>
 
-      <!-- 当前源的集数 -->
       <view class="episode-section" v-if="currentEpisodes.length > 0">
         <view class="episode-header">
           <text class="section-title">选集 (共{{ currentEpisodes.length }}集)</text>
-          <text class="current-source" v-if="currentSource">当前: {{ currentSource.source_name }}</text>
+          <text class="current-ep" v-if="currentEpisode >= 0">播放: 第{{ currentEpisode + 1 }}集</text>
         </view>
         <scroll-view scroll-x class="episode-scroll" enable-flex>
           <view class="episode-list">
             <view 
               class="episode-item" 
-              :class="{ active: currentEpisode === index }" 
+              :class="{ active: currentEpisode === index, watched: isWatched(index) }" 
               v-for="(ep, index) in currentEpisodes" 
               :key="index" 
               @click="playEpisode(index)"
@@ -84,7 +110,6 @@
         </scroll-view>
       </view>
 
-      <!-- 其他搜索结果 -->
       <view class="other-sources-section" v-if="otherResults.length > 0">
         <text class="section-title">其他播放源 ({{ otherResults.length }}个)</text>
         <view class="other-list">
@@ -94,7 +119,7 @@
             :key="index" 
             @click="loadOtherSource(item)"
           >
-            <image class="other-cover" :src="getPoster(item)" mode="aspectFill" />
+            <image class="other-cover" :src="getPoster(item)" mode="aspectFill" lazy-load />
             <view class="other-info">
               <text class="other-title">{{ item.title }}</text>
               <text class="other-source-name">{{ item.source_name }}</text>
@@ -120,21 +145,31 @@ export default {
       title: '',
       videoUrl: '',
       poster: '',
-      loading: true,
+      isLoading: true,
+      loadingMessage: '正在加载...',
+      errorMessage: '',
       info: {},
       allSources: [],
       otherResults: [],
       currentSourceIndex: 0,
       currentEpisodes: [],
-      currentEpisode: 0,
+      currentEpisode: -1,
       episodeTitles: [],
       currentTime: 0,
       duration: 0,
       saveTimer: null,
       isFavorited: false,
       searchKeyword: '',
-      isHls: false,
-      hlsInstance: null
+      useHls: false,
+      hlsInstance: null,
+      autoplay: true,
+      resumeTime: 0,
+      isBuffering: false,
+      loadingText: '加载中...',
+      speedTestResults: [],
+      watchedEpisodes: new Set(),
+      retryCount: 0,
+      maxRetry: 3
     }
   },
   computed: {
@@ -145,13 +180,18 @@ export default {
   onLoad(options) {
     this.title = decodeURIComponent(options.title || '播放')
     
+    if (options.time) {
+      this.resumeTime = parseInt(options.time) || 0
+    }
+    
     if (options.data) {
       try {
         const data = JSON.parse(decodeURIComponent(options.data))
         this.initWithData(data)
       } catch (e) {
-        console.error('parse data error:', e)
-        this.loading = false
+        console.error('[Play] parse data error:', e)
+        this.errorMessage = '数据解析失败'
+        this.isLoading = false
       }
     }
     
@@ -160,20 +200,25 @@ export default {
       this.searchAndLoad(this.searchKeyword)
     }
     
+    this.loadWatchedHistory()
+  },
+  onShow() {
     this.checkFavorite()
   },
   onUnload() {
     this.savePlayRecord()
+    this.saveWatchedHistory()
     if (this.saveTimer) {
       clearTimeout(this.saveTimer)
     }
-    if (this.hlsInstance) {
-      this.hlsInstance.destroy()
-      this.hlsInstance = null
-    }
+    this.destroyHls()
+  },
+  onHide() {
+    this.savePlayRecord()
   },
   methods: {
     initWithData(data) {
+      console.log('[Play] initWithData:', data)
       this.id = data.id || data.vod_id || ''
       this.type = data.type || 'movie'
       this.poster = this.proxyImage(data.poster || data.pic || data.cover || '')
@@ -194,14 +239,19 @@ export default {
         }]
         this.currentEpisodes = data.episodes
         this.episodeTitles = data.episodes_titles || []
-        this.playEpisode(0)
+        
+        const startEp = data.startEpisode || 0
+        this.playEpisode(startEp)
       }
       
-      this.loading = false
+      this.isLoading = false
     },
     
     searchAndLoad(keyword) {
       console.log('[Play] searchAndLoad:', keyword)
+      this.loadingMessage = '正在搜索播放源...'
+      this.isLoading = true
+      
       uni.request({
         url: '/api/search?q=' + encodeURIComponent(keyword),
         withCredentials: true,
@@ -210,23 +260,23 @@ export default {
           if (res.statusCode === 200 && res.data && res.data.results && res.data.results.length > 0) {
             this.processSearchResults(res.data.results)
           } else {
-            this.loading = false
-            uni.showToast({ title: '未找到播放源', icon: 'none' })
+            this.errorMessage = '未找到播放源'
+            this.isLoading = false
           }
         },
         fail: (err) => {
           console.error('[Play] search failed:', err)
-          this.loading = false
-          uni.showToast({ title: '搜索失败', icon: 'none' })
+          this.errorMessage = '搜索失败，请检查网络'
+          this.isLoading = false
         }
       })
     },
     
     processSearchResults(results) {
-      console.log('[Play] search results:', results)
+      console.log('[Play] processSearchResults:', results.length)
       if (!results || results.length === 0) {
-        this.loading = false
-        uni.showToast({ title: '未找到播放源', icon: 'none' })
+        this.errorMessage = '未找到播放源'
+        this.isLoading = false
         return
       }
       
@@ -259,7 +309,11 @@ export default {
       })
       
       this.allSources = Array.from(sourcesMap.values())
-      console.log('[Play] allSources:', this.allSources.length, this.allSources)
+      console.log('[Play] allSources:', this.allSources.length)
+      
+      this.otherResults = results.filter(item => {
+        return !item.episodes || item.episodes.length === 0
+      })
       
       if (this.allSources.length > 0) {
         this.currentSourceIndex = 0
@@ -267,18 +321,17 @@ export default {
         this.episodeTitles = this.allSources[0].episodes_titles || []
         this.playEpisode(0)
       } else {
-        uni.showToast({ title: '未找到可播放源', icon: 'none' })
+        this.errorMessage = '未找到可播放源'
+        this.isLoading = false
       }
-      
-      this.otherResults = results.filter(item => {
-        return !item.episodes || item.episodes.length === 0
-      })
-      
-      this.loading = false
     },
     
     switchSource(index) {
       if (this.currentSourceIndex === index) return
+      
+      console.log('[Play] switchSource:', index)
+      this.savePlayRecord()
+      this.destroyHls()
       
       this.currentSourceIndex = index
       const source = this.allSources[index]
@@ -290,6 +343,7 @@ export default {
     },
     
     loadOtherSource(item) {
+      console.log('[Play] loadOtherSource:', item.source_name)
       if (item.episodes && item.episodes.length > 0) {
         this.allSources.push({
           source: item.source,
@@ -303,92 +357,272 @@ export default {
     },
     
     playEpisode(index) {
+      console.log('[Play] playEpisode:', index)
       this.currentEpisode = index
-      if (this.currentEpisodes[index]) {
-        let url = this.currentEpisodes[index]
-        if (url.includes('.m3u8') && !url.includes('://')) {
-          url = 'https:' + url
-        }
-        console.log('[Play] original url:', url)
-        
-        const isHlsVideo = url.includes('.m3u8')
-        
-        this.videoUrl = url
-        this.isHls = false
-        
-        if (isHlsVideo && Hls && Hls.isSupported() && typeof document !== 'undefined') {
-          this.$nextTick(() => {
-            this.initHlsPlayer(url)
-          })
-        }
+      
+      if (!this.currentEpisodes[index]) {
+        console.error('[Play] episode url not found')
+        return
       }
+      
+      let url = this.currentEpisodes[index]
+      if (typeof url !== 'string') {
+        console.error('[Play] invalid episode url:', url)
+        return
+      }
+      
+      if (url.includes('.m3u8') && !url.includes('://')) {
+        url = 'https:' + url
+      }
+      
+      console.log('[Play] video url:', url)
+      
+      this.destroyHls()
+      this.videoUrl = url
+      this.useHls = false
+      this.retryCount = 0
+      this.errorMessage = ''
+      
+      const isHlsVideo = url.includes('.m3u8')
+      
+      if (isHlsVideo && typeof document !== 'undefined') {
+        this.$nextTick(() => {
+          if (Hls && Hls.isSupported()) {
+            this.initHlsPlayer(url)
+          } else {
+            console.log('[Play] HLS not supported, use native')
+            this.useHls = false
+          }
+          this.isLoading = false
+        })
+      } else {
+        this.isLoading = false
+      }
+      
+      this.checkFavorite()
     },
     
     initHlsPlayer(url) {
-      if (typeof document === 'undefined') return
+      console.log('[Play] initHlsPlayer:', url)
       
-      if (this.hlsInstance) {
-        this.hlsInstance.destroy()
-        this.hlsInstance = null
-      }
-      
-      const video = document.getElementById('hls-video')
+      const video = document.getElementById('video-player')
       if (!video) {
         console.error('[Play] video element not found')
+        this.useHls = false
         return
       }
+      
+      const bufferConfig = this.getHlsBufferConfig()
       
       this.hlsInstance = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
-        backBufferLength: 90,
+        backBufferLength: bufferConfig.backBufferLength,
+        maxBufferLength: bufferConfig.maxBufferLength,
+        maxBufferSize: bufferConfig.maxBufferSize,
+        maxMaxBufferLength: bufferConfig.maxBufferLength,
+        startLevel: -1,
+        autoStartLoad: true,
         xhrSetup: (xhr) => {
           xhr.withCredentials = false
-        }
+          xhr.timeout = 30000
+        },
+        fragLoadingTimeOut: 30000,
+        fragLoadingMaxRetry: 6,
+        fragLoadingRetryDelay: 1000,
+        levelLoadingTimeOut: 15000,
+        levelLoadingMaxRetry: 4,
+        levelLoadingRetryDelay: 1000,
+        manifestLoadingTimeOut: 15000,
+        manifestLoadingMaxRetry: 4,
+        manifestLoadingRetryDelay: 1000
       })
       
       this.hlsInstance.loadSource(url)
       this.hlsInstance.attachMedia(video)
       
       this.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log('[Play] HLS manifest parsed, starting playback')
-        this.isHls = true
-        video.play().catch(e => console.warn('[Play] autoplay failed:', e))
+        console.log('[Play] HLS manifest parsed')
+        this.useHls = true
+        this.isBuffering = false
+        this.errorMessage = ''
+        video.play().catch(e => {
+          console.warn('[Play] autoplay failed:', e)
+        })
+      })
+      
+      this.hlsInstance.on(Hls.Events.FRAG_LOADED, () => {
+        this.isBuffering = false
+      })
+      
+      this.hlsInstance.on(Hls.Events.FRAG_LOAD_EMERGENCY_ABORTED, () => {
+        console.warn('[Play] frag load emergency aborted')
       })
       
       this.hlsInstance.on(Hls.Events.ERROR, (event, data) => {
         console.error('[Play] HLS error:', data.type, data.details, data)
+        
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
               console.log('[Play] Network error, trying to recover')
-              this.hlsInstance.startLoad()
+              this.loadingText = '网络错误，正在重试...'
+              this.isBuffering = true
+              if (this.retryCount < this.maxRetry) {
+                this.retryCount++
+                this.hlsInstance.startLoad()
+              } else {
+                this.showErrorMessage('网络错误，播放失败')
+              }
               break
             case Hls.ErrorTypes.MEDIA_ERROR:
               console.log('[Play] Media error, trying to recover')
               this.hlsInstance.recoverMediaError()
               break
             default:
-              console.error('[Play] Fatal error, fallback to native')
-              this.hlsInstance.destroy()
-              this.hlsInstance = null
-              this.isHls = false
+              console.error('[Play] Fatal error, cannot recover')
+              this.showErrorMessage('播放失败，请尝试其他源')
+              this.destroyHls()
               break
           }
         }
       })
     },
     
-    getProxyUrl(url) {
-      if (!url) return ''
-      return url
+    getHlsBufferConfig() {
+      return {
+        maxBufferLength: 30,
+        backBufferLength: 30,
+        maxBufferSize: 60 * 1000 * 1000
+      }
+    },
+    
+    destroyHls() {
+      if (this.hlsInstance) {
+        this.hlsInstance.destroy()
+        this.hlsInstance = null
+        this.useHls = false
+      }
+    },
+    
+    showErrorMessage(msg) {
+      this.errorMessage = msg
+      this.isBuffering = false
+      uni.showToast({ title: msg, icon: 'none' })
+    },
+    
+    retryLoad() {
+      console.log('[Play] retryLoad')
+      this.errorMessage = ''
+      this.retryCount = 0
+      if (this.currentEpisode >= 0) {
+        this.playEpisode(this.currentEpisode)
+      }
+    },
+    
+    onPlay() {
+      console.log('[Play] onPlay')
+    },
+    
+    onPause() {
+      console.log('[Play] onPause')
+      this.savePlayRecord()
+    },
+    
+    onWaiting() {
+      this.isBuffering = true
+      this.loadingText = '缓冲中...'
+    },
+    
+    onPlaying() {
+      this.isBuffering = false
+      this.errorMessage = ''
+    },
+    
+    onTimeUpdate(e) {
+      this.currentTime = e.detail.currentTime
+      this.duration = e.detail.duration
+      
+      if (Math.floor(this.currentTime) % 30 === 0 && Math.floor(this.currentTime) > 0) {
+        if (!this.saveTimer) {
+          this.savePlayRecord()
+          this.saveTimer = setTimeout(() => {
+            this.saveTimer = null
+          }, 30000)
+        }
+      }
+    },
+    
+    onEnded() {
+      console.log('[Play] onEnded')
+      this.savePlayRecord()
+      this.markWatched(this.currentEpisode)
+      
+      if (this.currentEpisodes.length > this.currentEpisode + 1) {
+        this.currentEpisode++
+        setTimeout(() => {
+          this.playEpisode(this.currentEpisode)
+        }, 1500)
+      }
+    },
+    
+    onVideoError(e) {
+      console.error('[Play] video error:', e)
+      console.error('[Play] video url:', this.videoUrl)
+      
+      if (this.retryCount < this.maxRetry) {
+        this.retryCount++
+        this.loadingText = '播放出错，正在重试...'
+        this.isBuffering = true
+        setTimeout(() => {
+          this.playEpisode(this.currentEpisode)
+        }, 1000)
+      } else {
+        this.showErrorMessage('视频播放失败，请尝试其他源')
+      }
     },
     
     getEpisodeTitle(index) {
       if (this.episodeTitles && this.episodeTitles[index]) {
         return this.episodeTitles[index]
       }
+      if (this.currentEpisodes.length > 50) {
+        return (index + 1)
+      }
       return '第' + (index + 1) + '集'
+    },
+    
+    isWatched(index) {
+      const key = this.getWatchKey(index)
+      return this.watchedEpisodes.has(key)
+    },
+    
+    markWatched(index) {
+      const key = this.getWatchKey(index)
+      this.watchedEpisodes.add(key)
+    },
+    
+    getWatchKey(index) {
+      return `${this.id}_${this.currentSourceIndex}_${index}`
+    },
+    
+    loadWatchedHistory() {
+      try {
+        const data = uni.getStorageSync('watched_history')
+        if (data) {
+          this.watchedEpisodes = new Set(JSON.parse(data))
+        }
+      } catch (e) {
+        console.error('[Play] load watched history error:', e)
+      }
+    },
+    
+    saveWatchedHistory() {
+      try {
+        uni.setStorageSync('watched_history', JSON.stringify([...this.watchedEpisodes]))
+      } catch (e) {
+        console.error('[Play] save watched history error:', e)
+      }
     },
     
     getPoster(item) {
@@ -411,40 +645,9 @@ export default {
       return url
     },
     
-    onTimeUpdate(e) {
-      this.currentTime = e.detail.currentTime
-      this.duration = e.detail.duration
-      
-      if (!this.saveTimer && Math.floor(this.currentTime) % 30 === 0) {
-        this.savePlayRecord()
-        this.saveTimer = setTimeout(() => {
-          this.saveTimer = null
-        }, 30000)
-      }
-    },
-    
-    onEnded() {
-      this.savePlayRecord()
-      
-      if (this.currentEpisodes.length > this.currentEpisode + 1) {
-        setTimeout(() => {
-          this.playEpisode(this.currentEpisode + 1)
-        }, 2000)
-      }
-    },
-    
-    onVideoError(e) {
-      console.error('[Play] video error:', e)
-      console.error('[Play] video url:', this.videoUrl)
-      uni.showToast({
-        title: '视频播放失败',
-        icon: 'none',
-        duration: 2000
-      })
-    },
-    
     savePlayRecord() {
       if (!this.id && !this.title) return
+      if (this.currentTime < 5) return
       
       const record = {
         key: (this.currentSource?.source || 'unknown') + '+' + (this.id || Date.now()),
@@ -467,10 +670,10 @@ export default {
         data: record,
         withCredentials: true,
         success: () => {
-          console.log('播放记录已保存')
+          console.log('[Play] play record saved')
         },
         fail: (err) => {
-          console.error('保存播放记录失败:', err)
+          console.error('[Play] save play record failed:', err)
         }
       })
     },
@@ -483,15 +686,9 @@ export default {
         url: '/api/favorites?key=' + encodeURIComponent(key),
         withCredentials: true,
         success: (res) => {
-          console.log('[Play] check favorite response:', res.statusCode, res.data)
-          if (res.statusCode === 200 && res.data) {
-            this.isFavorited = true
-          } else {
-            this.isFavorited = false
-          }
+          this.isFavorited = res.statusCode === 200 && res.data
         },
-        fail: (err) => {
-          console.error('[Play] check favorite failed:', err)
+        fail: () => {
           this.isFavorited = false
         }
       })
@@ -511,12 +708,10 @@ export default {
               this.isFavorited = false
               uni.showToast({ title: '已取消收藏', icon: 'success' })
             } else {
-              console.error('取消收藏失败:', res.data)
               uni.showToast({ title: res.data?.error || '操作失败', icon: 'none' })
             }
           },
-          fail: (err) => {
-            console.error('取消收藏请求失败:', err)
+          fail: () => {
             uni.showToast({ title: '操作失败', icon: 'none' })
           }
         })
@@ -545,12 +740,10 @@ export default {
               this.isFavorited = true
               uni.showToast({ title: '收藏成功', icon: 'success' })
             } else {
-              console.error('收藏失败:', res.data)
               uni.showToast({ title: res.data?.error || '操作失败', icon: 'none' })
             }
           },
-          fail: (err) => {
-            console.error('收藏请求失败:', err)
+          fail: () => {
             uni.showToast({ title: '操作失败', icon: 'none' })
           }
         })
@@ -574,11 +767,51 @@ export default {
   width: 100%;
   aspect-ratio: 16/9;
   background: #000;
+  position: relative;
+}
+
+.video-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
 }
 
 .video {
   width: 100%;
   height: 100%;
+}
+
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 10;
+}
+
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid rgba(255, 255, 255, 0.3);
+  border-top-color: $color-primary;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: #fff;
+  font-size: 26rpx;
+  margin-top: 16rpx;
 }
 
 .video-placeholder {
@@ -587,9 +820,38 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.loading-state, .error-state, .empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   
   text {
     color: $color-text-muted;
+    font-size: 28rpx;
+  }
+}
+
+.error-icon {
+  font-size: 80rpx;
+  color: $color-danger;
+  margin-bottom: 16rpx;
+}
+
+.error-text {
+  color: $color-text-muted;
+  margin-bottom: 24rpx;
+}
+
+.retry-btn {
+  padding: 16rpx 48rpx;
+  background: $color-primary;
+  border-radius: 24rpx;
+  
+  text {
+    color: #fff;
     font-size: 28rpx;
   }
 }
@@ -633,11 +895,7 @@ export default {
   &.active {
     background: rgba($color-primary, 0.2);
     
-    .action-icon {
-      color: $color-primary;
-    }
-    
-    .action-text {
+    .action-icon, .action-text {
       color: $color-primary;
     }
   }
@@ -659,6 +917,7 @@ export default {
   display: flex;
   gap: 16rpx;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .year, .type-name {
@@ -670,6 +929,14 @@ export default {
   color: $color-warning;
   font-size: 26rpx;
   font-weight: bold;
+}
+
+.source-badge {
+  padding: 4rpx 12rpx;
+  background: rgba($color-primary, 0.2);
+  color: $color-primary;
+  font-size: 22rpx;
+  border-radius: 8rpx;
 }
 
 .desc {
@@ -687,10 +954,22 @@ export default {
   padding: 24rpx;
 }
 
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
 .section-title {
   color: $color-text;
   font-size: 30rpx;
   font-weight: bold;
+}
+
+.speed-info {
+  color: $color-success;
+  font-size: 24rpx;
 }
 
 .episode-header {
@@ -700,13 +979,12 @@ export default {
   margin-bottom: 16rpx;
 }
 
-.current-source {
+.current-ep {
   color: $color-secondary;
   font-size: 24rpx;
 }
 
 .source-scroll, .episode-scroll {
-  margin-top: 16rpx;
   width: 100%;
 }
 
@@ -735,8 +1013,12 @@ export default {
     background: $color-primary;
     
     text {
-      color: $color-text;
+      color: #fff;
     }
+  }
+  
+  &.watched {
+    opacity: 0.6;
   }
 }
 
@@ -749,7 +1031,12 @@ export default {
   margin-top: 4rpx;
 }
 
-/* 其他源列表 */
+.source-speed {
+  font-size: 18rpx;
+  color: $color-success;
+  margin-top: 4rpx;
+}
+
 .other-list {
   margin-top: 16rpx;
 }
@@ -793,6 +1080,11 @@ export default {
 .other-eps {
   color: $color-text-muted;
   font-size: 22rpx;
+}
+
+.safe-area-bottom {
+  height: constant(safe-area-inset-bottom);
+  height: env(safe-area-inset-bottom);
 }
 
 @media screen and (min-width: 768px) {
