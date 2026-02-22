@@ -1,24 +1,11 @@
 <template>
   <view class="page">
     <view class="video-wrap">
-      <video 
-        v-if="videoUrl && !isHls" 
-        class="video" 
-        :src="videoUrl" 
-        :poster="poster" 
-        controls 
-        show-center-play-btn 
-        enable-progress-gesture
-        enable-play-gesture
-        :autoplay="true"
-        @error="onVideoError"
-        @timeupdate="onTimeUpdate" 
-        @ended="onEnded" 
-      />
-      <view v-else-if="isHls && videoUrl" class="video" id="hls-video-container">
+      <view v-if="videoUrl" class="video" id="hls-video-container">
         <video 
           id="hls-video"
           class="video" 
+          :src="!isHls ? videoUrl : ''"
           :poster="poster" 
           controls 
           show-center-play-btn 
@@ -308,15 +295,13 @@ export default {
         
         const isHlsVideo = url.includes('.m3u8')
         
+        this.videoUrl = url
+        this.isHls = false
+        
         if (isHlsVideo && Hls && Hls.isSupported() && typeof document !== 'undefined') {
-          this.isHls = true
-          this.videoUrl = url
           this.$nextTick(() => {
             this.initHlsPlayer(url)
           })
-        } else {
-          this.isHls = false
-          this.videoUrl = url
         }
       }
     },
@@ -331,15 +316,17 @@ export default {
       
       const video = document.getElementById('hls-video')
       if (!video) {
-        console.error('[Play] video element not found, fallback to native')
-        this.isHls = false
+        console.error('[Play] video element not found')
         return
       }
       
       this.hlsInstance = new Hls({
         enableWorker: true,
         lowLatencyMode: false,
-        backBufferLength: 90
+        backBufferLength: 90,
+        xhrSetup: (xhr) => {
+          xhr.withCredentials = false
+        }
       })
       
       this.hlsInstance.loadSource(url)
@@ -347,6 +334,7 @@ export default {
       
       this.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
         console.log('[Play] HLS manifest parsed, starting playback')
+        this.isHls = true
         video.play().catch(e => console.warn('[Play] autoplay failed:', e))
       })
       
@@ -363,9 +351,10 @@ export default {
               this.hlsInstance.recoverMediaError()
               break
             default:
-              console.error('[Play] Fatal error, cannot recover')
+              console.error('[Play] Fatal error, fallback to native')
               this.hlsInstance.destroy()
-              uni.showToast({ title: '视频播放失败', icon: 'none' })
+              this.hlsInstance = null
+              this.isHls = false
               break
           }
         }
