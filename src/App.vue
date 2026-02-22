@@ -2,11 +2,13 @@
 export default {
   onLaunch() {
     console.log('App Launch')
-    // 设置状态栏
+    // H5 环境下不设置导航栏颜色
+    // #ifndef H5
     uni.setNavigationBarColor({
       frontColor: '#ffffff',
       backgroundColor: '#0f0f1a'
     })
+    // #endif
   },
   onShow() {
     console.log('App Show')
