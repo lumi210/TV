@@ -231,15 +231,15 @@ export default {
       this.isLoading = true
       
       try {
-        const result = await this.parseShortDramaInfo(id, title || '')
+        const result = await this.fetchShortDramaFromMainApi(id, title || '')
         
-        if (result && result.totalEpisodes > 0) {
+        if (result && result.episodes && result.episodes.length > 0) {
           const data = {
             id: id,
             title: title,
             poster: result.cover || '',
-            episodes: Array.from({ length: result.totalEpisodes }, (_, i) => `shortdrama:${id}:${i + 1}`),
-            episodes_titles: Array.from({ length: result.totalEpisodes }, (_, i) => `第${i + 1}集`),
+            episodes: result.episodes,
+            episodes_titles: result.episodes_titles || [],
             source: 'shortdrama',
             source_name: '短剧',
             type: 'shortdrama',
@@ -259,44 +259,83 @@ export default {
       }
     },
     
-    parseShortDramaInfo(id, dramaName) {
+    fetchShortDramaFromMainApi(id, dramaName) {
       return new Promise((resolve) => {
-        const tryParse = (episode, retriesLeft) => {
-          uni.request({
-            url: '/api/shortdrama/parse?id=' + id + '&episode=' + episode + '&proxy=true&name=' + encodeURIComponent(dramaName),
-            withCredentials: true,
-            success: (res) => {
-              console.log('[Play] shortdrama parse response:', res.statusCode, res.data)
-              if (res.statusCode === 200 && res.data && res.data.totalEpisodes) {
-                resolve({
-                  totalEpisodes: res.data.totalEpisodes || 1,
-                  cover: '',
-                  description: '',
-                  videoName: res.data.title || dramaName
-                })
-              } else if (res.statusCode === 401) {
-                resolve({ msg: '请先登录', totalEpisodes: 0 })
-              } else if (retriesLeft > 0) {
-                const nextEpisode = episode === 1 ? 2 : (episode === 2 ? 0 : 1)
-                console.log('[Play] retry with episode:', nextEpisode)
-                tryParse(nextEpisode, retriesLeft - 1)
-              } else {
-                resolve({ msg: res.data?.error || '解析失败', totalEpisodes: 0 })
-              }
-            },
-            fail: (err) => {
-              console.error('[Play] parse shortdrama failed:', err)
-              if (retriesLeft > 0) {
-                const nextEpisode = episode === 1 ? 2 : (episode === 2 ? 0 : 1)
-                console.log('[Play] retry with episode:', nextEpisode)
-                tryParse(nextEpisode, retriesLeft - 1)
-              } else {
-                resolve({ msg: '网络请求失败', totalEpisodes: 0 })
-              }
+        uni.request({
+          url: '/api/shortdrama/detail?id=' + id,
+          withCredentials: true,
+          success: (res) => {
+            console.log('[Play] detail api response:', res.statusCode, JSON.stringify(res.data || {}).substring(0, 500))
+            if (res.statusCode === 200 && res.data && res.data.episodes && res.data.episodes.length > 0) {
+              resolve({
+                totalEpisodes: res.data.episodes.length,
+                episodes: res.data.episodes,
+                episodes_titles: res.data.episodes_titles || [],
+                cover: res.data.poster || '',
+                description: res.data.desc || '',
+                videoName: res.data.title || dramaName
+              })
+            } else {
+              this.fetchShortDramaFromRemoteApi(id, dramaName).then(resolve)
             }
-          })
-        }
-        tryParse(1, 2)
+          },
+          fail: (err) => {
+            console.error('[Play] fetch from detail api failed:', err)
+            this.fetchShortDramaFromRemoteApi(id, dramaName).then(resolve)
+          }
+        })
+      })
+    },
+    
+    fetchShortDramaFromRemoteApi(id, dramaName) {
+      return new Promise((resolve) => {
+        const apiUrl = 'https://wwzy.tv/api.php/provide/vod?ac=videolist&ids=' + id
+        console.log('[Play] fetching from remote api:', apiUrl)
+        
+        uni.request({
+          url: apiUrl,
+          success: (res) => {
+            console.log('[Play] remote api response:', res.statusCode, JSON.stringify(res.data || {}).substring(0, 500))
+            if (res.statusCode === 200 && res.data && res.data.list && res.data.list.length > 0) {
+              const item = res.data.list[0]
+              const playUrl = item.vod_play_url || ''
+              
+              if (playUrl) {
+                const episodeParts = playUrl.split('#')
+                const episodes = []
+                const episodes_titles = []
+                
+                episodeParts.forEach((part, index) => {
+                  const parts = part.split('$')
+                  if (parts.length >= 2) {
+                    episodes_titles.push(parts[0])
+                    episodes.push(parts[1])
+                  } else if (parts.length === 1 && (parts[0].includes('.m3u8') || parts[0].includes('.mp4'))) {
+                    episodes_titles.push('第' + (index + 1) + '集')
+                    episodes.push(parts[0])
+                  }
+                })
+                
+                resolve({
+                  totalEpisodes: episodes.length,
+                  episodes: episodes,
+                  episodes_titles: episodes_titles,
+                  cover: item.vod_pic || '',
+                  description: item.vod_content || item.vod_blurb || '',
+                  videoName: item.vod_name || dramaName
+                })
+              } else {
+                resolve({ msg: '未找到播放地址', episodes: [] })
+              }
+            } else {
+              resolve({ msg: '获取视频信息失败', episodes: [] })
+            }
+          },
+          fail: (err) => {
+            console.error('[Play] fetch from remote api failed:', err)
+            resolve({ msg: '网络请求失败', episodes: [] })
+          }
+        })
       })
     },
     
