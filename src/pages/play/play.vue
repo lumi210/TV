@@ -620,11 +620,13 @@ export default {
       console.log('[Play] playShortDramaEpisode:', episodeUrl)
       this.isBuffering = true
       this.loadingText = '正在获取播放地址...'
+      this.errorMessage = ''
       
       const parts = episodeUrl.split(':')
       if (parts.length < 3) {
         this.errorMessage = '无效的短剧地址格式'
         this.isBuffering = false
+        this.isLoading = false
         return
       }
       
@@ -635,27 +637,35 @@ export default {
         url: '/api/shortdrama/parse?id=' + id + '&episode=' + episode + '&proxy=true&name=' + encodeURIComponent(this.title || ''),
         withCredentials: true,
         success: (res) => {
-          console.log('[Play] shortdrama parse response:', res.statusCode, res.data)
-          if (res.statusCode === 200 && res.data && res.data.code === 0 && res.data.data) {
-            const playUrl = res.data.data.parsedUrl || res.data.data.proxyUrl || res.data.data.episode?.parsedUrl
+          console.log('[Play] shortdrama parse response:', res.statusCode, JSON.stringify(res.data).substring(0, 500))
+          if (res.statusCode === 200 && res.data) {
+            let playUrl = null
+            
+            if (res.data.code === 0 && res.data.data) {
+              playUrl = res.data.data.parsedUrl || res.data.data.proxyUrl || res.data.data.episode?.parsedUrl
+            }
+            
             if (playUrl) {
               this.videoUrl = playUrl
               this.errorMessage = ''
               this.retryCount = 0
+              console.log('[Play] got playUrl:', playUrl)
             } else {
-              this.errorMessage = '未获取到播放地址'
+              this.isBuffering = false
+              this.isLoading = false
+              this.errorMessage = res.data?.msg || '未获取到播放地址'
             }
           } else {
-            this.errorMessage = res.data?.msg || '获取播放地址失败'
+            this.isBuffering = false
+            this.isLoading = false
+            this.errorMessage = res.data?.error || res.data?.msg || '获取播放地址失败'
           }
-          this.isBuffering = false
-          this.isLoading = false
         },
         fail: (err) => {
           console.error('[Play] get shortdrama play url failed:', err)
-          this.errorMessage = '网络请求失败'
           this.isBuffering = false
           this.isLoading = false
+          this.errorMessage = '网络请求失败'
         }
       })
     },
@@ -739,15 +749,32 @@ export default {
       if (this.retryCount < this.maxRetry) {
         this.retryCount++
         this.isBuffering = true
-        this.loadingText = '播放出错，正在重试...'
+        this.loadingText = '播放出错，正在重试(' + this.retryCount + '/' + this.maxRetry + ')...'
         setTimeout(() => {
           this.playEpisode(this.currentEpisode)
         }, 1000)
       } else {
         this.isBuffering = false
-        this.errorMessage = '视频播放失败，请尝试其他源'
+        this.isLoading = false
+        this.errorMessage = '视频播放失败'
         
-        if (this.availableSources.length > 1) {
+        if (this.type === 'shortdrama' && this.currentEpisodes.length > this.currentEpisode + 1) {
+          uni.showModal({
+            title: '播放失败',
+            content: '当前集播放失败，是否尝试播放下一集？',
+            success: (res) => {
+              if (res.confirm) {
+                this.retryCount = 0
+                this.errorMessage = ''
+                this.playEpisode(this.currentEpisode + 1)
+              } else {
+                if (this.availableSources.length > 1) {
+                  this.activeTab = 'sources'
+                }
+              }
+            }
+          })
+        } else if (this.availableSources.length > 1) {
           uni.showModal({
             title: '播放失败',
             content: '当前源播放失败，是否切换到其他播放源？',
