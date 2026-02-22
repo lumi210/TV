@@ -60,7 +60,20 @@
 
     <view class="player-modal" v-if="playingChannel" @click="closePlayer">
       <view class="player-wrap" @click.stop>
-        <video class="player-video" :src="playingChannel.url" autoplay controls />
+        <video 
+          ref="liveVideo"
+          id="live-video"
+          class="player-video" 
+          :src="videoSrc"
+          autoplay 
+          controls 
+          show-center-play-btn
+          enable-progress-gesture
+          :muted="false"
+          @error="onVideoError"
+          @play="onVideoPlay"
+          @pause="onVideoPause"
+        />
         <view class="player-info">
           <text class="player-title">{{ playingChannel.name }}</text>
         </view>
@@ -73,6 +86,8 @@
 </template>
 
 <script>
+import Hls from 'hls.js'
+
 export default {
   data() {
     return {
@@ -82,7 +97,9 @@ export default {
       channels: [],
       playingChannel: null,
       searchKeyword: '',
-      filteredChannels: []
+      filteredChannels: [],
+      hlsInstance: null,
+      videoSrc: ''
     }
   },
   computed: {
@@ -203,9 +220,89 @@ export default {
         return
       }
       this.playingChannel = channel
+      this.$nextTick(() => {
+        this.initPlayer(channel.url)
+      })
     },
+    
+    initPlayer(url) {
+      this.destroyPlayer()
+      
+      const video = document.getElementById('live-video')
+      if (!video) {
+        console.error('[Live] video element not found')
+        return
+      }
+      
+      console.log('[Live] init player with url:', url)
+      
+      const isHls = url.includes('.m3u8') || url.includes('m3u8')
+      
+      if (isHls && Hls.isSupported()) {
+        this.hlsInstance = new Hls({
+          enableWorker: true,
+          lowLatencyMode: true,
+          backBufferLength: 90
+        })
+        this.hlsInstance.loadSource(url)
+        this.hlsInstance.attachMedia(video)
+        this.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+          console.log('[Live] HLS manifest parsed, starting playback')
+          video.play().catch(e => console.warn('[Live] autoplay failed:', e))
+        })
+        this.hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+          console.error('[Live] HLS error:', data)
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.log('[Live] network error, trying to recover')
+                this.hlsInstance.startLoad()
+                break
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.log('[Live] media error, trying to recover')
+                this.hlsInstance.recoverMediaError()
+                break
+              default:
+                console.log('[Live] fatal error, destroying player')
+                this.destroyPlayer()
+                uni.showToast({ title: '播放失败', icon: 'none' })
+                break
+            }
+          }
+        })
+        this.videoSrc = ''
+      } else if (video.canPlayType('application/vnd.apple.mpegurl') && isHls) {
+        this.videoSrc = url
+        video.play().catch(e => console.warn('[Live] autoplay failed:', e))
+      } else {
+        this.videoSrc = url
+        video.play().catch(e => console.warn('[Live] autoplay failed:', e))
+      }
+    },
+    
+    destroyPlayer() {
+      if (this.hlsInstance) {
+        this.hlsInstance.destroy()
+        this.hlsInstance = null
+      }
+    },
+    
+    onVideoError(e) {
+      console.error('[Live] video error:', e)
+    },
+    
+    onVideoPlay() {
+      console.log('[Live] video playing')
+    },
+    
+    onVideoPause() {
+      console.log('[Live] video paused')
+    },
+    
     closePlayer() {
+      this.destroyPlayer()
       this.playingChannel = null
+      this.videoSrc = ''
     },
     onSearchInput(e) {
       this.searchKeyword = e.detail.value.toLowerCase()
@@ -430,6 +527,7 @@ export default {
 .player-video {
   width: 100%;
   height: 420rpx;
+  background: #000;
 }
 
 .player-info {
