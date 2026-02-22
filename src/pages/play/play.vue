@@ -2,7 +2,7 @@
   <view class="page">
     <view class="video-wrap">
       <video 
-        v-if="videoUrl" 
+        v-if="videoUrl && !isHls" 
         class="video" 
         :src="videoUrl" 
         :poster="poster" 
@@ -15,6 +15,23 @@
         @timeupdate="onTimeUpdate" 
         @ended="onEnded" 
       />
+      <view v-else-if="isHls && videoUrl" class="video" id="hls-video-container">
+        <video 
+          id="hls-video"
+          class="video" 
+          :poster="poster" 
+          controls 
+          show-center-play-btn 
+          enable-progress-gesture
+          enable-play-gesture
+          :autoplay="true"
+          @error="onVideoError"
+          @timeupdate="onTimeUpdate" 
+          @ended="onEnded"
+          x5-video-player-type="h5"
+          x5-video-player="true"
+        />
+      </view>
       <view class="video-placeholder" v-else>
         <text v-if="loading">加载中...</text>
         <text v-else>视频加载失败</text>
@@ -106,6 +123,8 @@
 </template>
 
 <script>
+let Hls = null
+
 export default {
   data() {
     return {
@@ -126,7 +145,9 @@ export default {
       duration: 0,
       saveTimer: null,
       isFavorited: false,
-      searchKeyword: ''
+      searchKeyword: '',
+      isHls: false,
+      hlsInstance: null
     }
   },
   computed: {
@@ -134,7 +155,17 @@ export default {
       return this.allSources[this.currentSourceIndex] || null
     }
   },
-  onLoad(options) {
+  async onLoad(options) {
+    if (typeof window !== 'undefined') {
+      try {
+        const hlsModule = await import('hls.js')
+        Hls = hlsModule.default
+        console.log('[Play] HLS.js loaded, supported:', Hls.isSupported())
+      } catch (e) {
+        console.warn('[Play] HLS.js not available:', e)
+      }
+    }
+    
     this.title = decodeURIComponent(options.title || '播放')
     
     if (options.data) {
@@ -158,6 +189,10 @@ export default {
     this.savePlayRecord()
     if (this.saveTimer) {
       clearTimeout(this.saveTimer)
+    }
+    if (this.hlsInstance) {
+      this.hlsInstance.destroy()
+      this.hlsInstance = null
     }
   },
   methods: {
@@ -280,8 +315,67 @@ export default {
           url = 'https:' + url
         }
         console.log('[Play] original url:', url)
-        this.videoUrl = url
+        
+        this.isHls = url.includes('.m3u8')
+        
+        if (this.isHls && Hls && Hls.isSupported()) {
+          this.$nextTick(() => {
+            this.initHlsPlayer(url)
+          })
+        } else {
+          this.videoUrl = url
+        }
       }
+    },
+    
+    initHlsPlayer(url) {
+      if (this.hlsInstance) {
+        this.hlsInstance.destroy()
+        this.hlsInstance = null
+      }
+      
+      const video = document.getElementById('hls-video')
+      if (!video) {
+        console.error('[Play] video element not found')
+        this.videoUrl = url
+        this.isHls = false
+        return
+      }
+      
+      this.hlsInstance = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        backBufferLength: 90
+      })
+      
+      this.hlsInstance.loadSource(url)
+      this.hlsInstance.attachMedia(video)
+      
+      this.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.log('[Play] HLS manifest parsed, starting playback')
+        video.play().catch(e => console.warn('[Play] autoplay failed:', e))
+      })
+      
+      this.hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+        console.error('[Play] HLS error:', data.type, data.details, data)
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.log('[Play] Network error, trying to recover')
+              this.hlsInstance.startLoad()
+              break
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.log('[Play] Media error, trying to recover')
+              this.hlsInstance.recoverMediaError()
+              break
+            default:
+              console.error('[Play] Fatal error, cannot recover')
+              this.hlsInstance.destroy()
+              uni.showToast({ title: '视频播放失败', icon: 'none' })
+              break
+          }
+        }
+      })
     },
     
     getProxyUrl(url) {
@@ -381,52 +475,74 @@ export default {
     },
     
     checkFavorite() {
+      if (!this.id) return
+      const source = this.currentSource?.source || 'unknown'
+      const key = source + '+' + this.id
       uni.request({
-        url: '/api/favorites/check/' + this.id,
+        url: '/api/favorites?key=' + encodeURIComponent(key),
         withCredentials: true,
         success: (res) => {
+          console.log('[Play] check favorite response:', res.statusCode, res.data)
           if (res.statusCode === 200 && res.data) {
-            this.isFavorited = res.data.favorited || false
+            this.isFavorited = true
+          } else {
+            this.isFavorited = false
           }
+        },
+        fail: (err) => {
+          console.error('[Play] check favorite failed:', err)
+          this.isFavorited = false
         }
       })
     },
     
     toggleFavorite() {
+      const source = this.currentSource?.source || 'unknown'
+      const key = source + '+' + (this.id || Date.now())
+      
       if (this.isFavorited) {
         uni.request({
-          url: '/api/favorites/' + this.id,
+          url: '/api/favorites?key=' + encodeURIComponent(key),
           method: 'DELETE',
           withCredentials: true,
           success: (res) => {
             if (res.statusCode === 200) {
               this.isFavorited = false
               uni.showToast({ title: '已取消收藏', icon: 'success' })
+            } else {
+              console.error('取消收藏失败:', res.data)
+              uni.showToast({ title: res.data?.error || '操作失败', icon: 'none' })
             }
           },
-          fail: () => {
+          fail: (err) => {
+            console.error('取消收藏请求失败:', err)
             uni.showToast({ title: '操作失败', icon: 'none' })
           }
         })
       } else {
+        const favorite = {
+          title: this.title,
+          source_name: this.currentSource?.source_name || '未知源',
+          cover: this.poster,
+          type: this.type || 'movie',
+          save_time: Date.now()
+        }
         uni.request({
           url: '/api/favorites',
           method: 'POST',
-          data: {
-            videoId: this.id,
-            title: this.title,
-            cover: this.poster,
-            type: this.type,
-            source_name: this.currentSource?.source_name
-          },
+          data: { key, favorite },
           withCredentials: true,
           success: (res) => {
             if (res.statusCode === 200) {
               this.isFavorited = true
               uni.showToast({ title: '收藏成功', icon: 'success' })
+            } else {
+              console.error('收藏失败:', res.data)
+              uni.showToast({ title: res.data?.error || '操作失败', icon: 'none' })
             }
           },
-          fail: () => {
+          fail: (err) => {
+            console.error('收藏请求失败:', err)
             uni.showToast({ title: '操作失败', icon: 'none' })
           }
         })
