@@ -10,7 +10,7 @@ export default defineConfig({
     allowedHosts: ['.monkeycode-ai.online', 'all'],
     proxy: {
       '/api': {
-        target: process.env.VITE_API_URL || 'http://localhost:3000',
+        target: 'http://47.113.227.252:3000',
         changeOrigin: true
       }
     }
