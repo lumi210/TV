@@ -627,12 +627,15 @@ export default {
     },
     
     playShortDramaEpisode(episodeUrl) {
-      console.log('[Play] playShortDramaEpisode:', episodeUrl, 'title:', this.title)
+      console.log('[Play] playShortDramaEpisode:', episodeUrl)
+      console.log('[Play] this.id:', this.id, 'this.title:', this.title)
       this.isBuffering = true
       this.loadingText = '正在获取播放地址...'
       this.errorMessage = ''
       
       const parts = episodeUrl.split(':')
+      console.log('[Play] episode parts:', parts)
+      
       if (parts.length < 3) {
         this.errorMessage = '无效的短剧地址格式'
         this.isBuffering = false
@@ -642,8 +645,10 @@ export default {
       
       const id = parts[1]
       const episode = parseInt(parts[2])
-      
       const dramaName = this.title || ''
+      
+      console.log('[Play] parse params - id:', id, 'episode:', episode, 'dramaName:', dramaName)
+      
       const apiUrl = '/api/shortdrama/parse?id=' + id + '&episode=' + episode + '&proxy=true&name=' + encodeURIComponent(dramaName)
       console.log('[Play] request url:', apiUrl)
       
@@ -651,10 +656,12 @@ export default {
         url: apiUrl,
         withCredentials: true,
         success: (res) => {
-          console.log('[Play] shortdrama parse response:', res.statusCode, JSON.stringify(res.data || {}).substring(0, 800))
+          console.log('[Play] shortdrama parse response status:', res.statusCode)
+          console.log('[Play] shortdrama parse response data:', JSON.stringify(res.data || {}))
           
           if (res.statusCode === 200 && res.data) {
             if (res.data.error) {
+              console.error('[Play] parse returned error:', res.data.error)
               this.isBuffering = false
               this.isLoading = false
               this.errorMessage = res.data.error
@@ -670,6 +677,7 @@ export default {
               this.isLoading = false
               console.log('[Play] got playUrl:', playUrl)
             } else {
+              console.error('[Play] no playUrl in response')
               this.isBuffering = false
               this.isLoading = false
               this.errorMessage = '未获取到播放地址'
