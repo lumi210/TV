@@ -235,6 +235,52 @@ export default {
       }
       
       this.isLoading = false
+      
+      // 搜索获取更多播放源
+      const searchTitle = data.title || data.name || data.search_title
+      if (searchTitle) {
+        this.searchMoreSources(searchTitle)
+      }
+    },
+    
+    searchMoreSources(keyword) {
+      console.log('[Play] searchMoreSources:', keyword)
+      uni.request({
+        url: '/api/search?q=' + encodeURIComponent(keyword),
+        withCredentials: true,
+        success: (res) => {
+          console.log('[Play] more sources response:', res.statusCode, res.data?.results?.length)
+          if (res.statusCode === 200 && res.data && res.data.results && res.data.results.length > 0) {
+            this.mergeSources(res.data.results)
+          }
+        },
+        fail: (err) => {
+          console.error('[Play] search more sources failed:', err)
+        }
+      })
+    },
+    
+    mergeSources(results) {
+      const existingKeys = new Set(this.allSources.map(s => s.source))
+      
+      results.forEach(item => {
+        if (item.episodes && item.episodes.length > 0) {
+          const key = item.source || item.source_name || 'unknown'
+          // 只添加不存在的源
+          if (!existingKeys.has(key)) {
+            existingKeys.add(key)
+            this.allSources.push({
+              source: item.source,
+              source_name: item.source_name || ('源' + (this.allSources.length + 1)),
+              episodes: item.episodes,
+              episodes_titles: item.episodes_titles || [],
+              originalData: item
+            })
+          }
+        }
+      })
+      
+      console.log('[Play] merged allSources:', this.allSources.length)
     },
     
     searchAndLoad(keyword) {
