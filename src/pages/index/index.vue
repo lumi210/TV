@@ -554,7 +554,9 @@ export default {
 .hero-banner {
   position: relative;
   width: 100%;
-  height: 560rpx;
+  height: 50vw;
+  max-height: 400rpx;
+  min-height: 280rpx;
   overflow: hidden;
 }
 

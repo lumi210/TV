@@ -5,24 +5,28 @@
         <text>&lt;</text>
       </view>
       <text class="header-title">观看历史</text>
+      <view class="clear-all" v-if="list.length > 0" @click="clearAll">
+        <text>清空</text>
+      </view>
     </view>
 
     <scroll-view scroll-y class="content">
       <view class="list">
         <view class="item" v-for="(item, index) in list" :key="index" @click="goDetail(item)">
-          <image class="cover" :src="getCover(item)" mode="aspectFill" lazy-load />
+          <image class="cover" :src="getCover(item)" mode="aspectFill" lazy-load @error="onCoverError(item)" />
           <view class="info">
             <text class="title">{{ getTitle(item) }}</text>
             <view class="meta">
+              <text class="source" v-if="item.source_name">{{ item.source_name }}</text>
               <text class="episode" v-if="getEpisode(item)">第{{ getEpisode(item) }}集</text>
-              <text class="time">{{ formatTime(getTime(item)) }}</text>
             </view>
-            <view class="progress" v-if="item.progress">
+            <view class="progress-row" v-if="item.play_time && item.duration">
               <view class="progress-bar">
                 <view class="progress-fill" :style="{ width: getProgressPercent(item) + '%' }"></view>
               </view>
-              <text class="progress-text">{{ formatProgress(item.progress, item.duration) }}</text>
+              <text class="progress-text">{{ formatProgress(item.play_time, item.duration) }}</text>
             </view>
+            <text class="time">{{ formatTime(getTime(item)) }}</text>
           </view>
           <view class="delete-btn" @click.stop="deleteItem(item, index)">
             <text>删除</text>
@@ -31,11 +35,13 @@
       </view>
 
       <view class="loading" v-if="loading">
+        <view class="loading-spinner"></view>
         <text>加载中...</text>
       </view>
 
       <view class="empty" v-if="!loading && list.length === 0">
-        <text>暂无观看记录</text>
+        <text class="empty-icon">&#128250;</text>
+        <text class="empty-text">暂无观看记录</text>
         <text class="empty-tip">快去看看精彩内容吧</text>
       </view>
       
@@ -59,25 +65,28 @@ export default {
     goBack() {
       uni.navigateBack()
     },
+    
     loadData() {
       this.loading = true
       uni.request({
         url: '/api/playrecords',
         withCredentials: true,
         success: (res) => {
-          console.log('playrecords response:', JSON.stringify(res.data))
-          if (res.data) {
+          if (res.statusCode === 200 && res.data) {
             if (Array.isArray(res.data)) {
               this.list = res.data
-            } else if (res.data.list) {
-              this.list = res.data.list
-            } else if (res.data.records) {
-              this.list = res.data.records
-            } else if (res.data.data) {
-              this.list = Array.isArray(res.data.data) ? res.data.data : []
+            } else if (typeof res.data === 'object') {
+              const records = res.data.records || res.data.list || res.data.data || []
+              if (Array.isArray(records)) {
+                this.list = records
+              } else if (typeof records === 'object') {
+                this.list = Object.entries(records).map(([key, value]) => ({
+                  key,
+                  ...value
+                }))
+              }
             }
           }
-          console.log('list:', JSON.stringify(this.list))
         },
         fail: () => {
           uni.showToast({ title: '加载失败', icon: 'none' })
@@ -87,69 +96,122 @@ export default {
         }
       })
     },
-    // 获取封面
+    
     getCover(item) {
-      return item.cover || item.pic || item.poster || item.thumb || ''
+      const url = item.cover || item.poster || item.pic || item.thumb
+      if (!url) {
+        return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAiIGhlaWdodD0iMjIwIiB2aWV3Qm94PSIwIDAgMTYwIDIyMCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIyMjAiLz48dGV4dCB4PSI4MCIgeT0iMTEwIiBmaWxsPSIjODg4IiBmb250LXNpemU9IjE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIj7ml6DmtITlm77niYc8L3RleHQ+PC9zdmc+'
+      }
+      return this.proxyImage(url)
     },
-    // 获取标题
+    
+    proxyImage(url) {
+      if (!url || url.startsWith('data:')) return url
+      if (url.includes('doubanio.com') || url.includes('img9.doubanio.com')) {
+        return '/api/image-proxy?url=' + encodeURIComponent(url)
+      }
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        if (!url.includes('monkeycode-ai.online') && !url.includes('localhost')) {
+          return '/api/image-proxy?url=' + encodeURIComponent(url)
+        }
+      }
+      return url
+    },
+    
+    onCoverError(item) {
+      item.cover = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAiIGhlaWdodD0iMjIwIiB2aWV3Qm94PSIwIDAgMTYwIDIyMCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIyMjAiLz48dGV4dCB4PSI4MCIgeT0iMTEwIiBmaWxsPSIjODg4IiBmb250LXNpemU9IjE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIj7ml6DmtITlm77niYc8L3RleHQ+PC9zdmc+'
+    },
+    
     getTitle(item) {
-      return item.title || item.name || item.videoTitle || item.videoName || '未知内容'
+      return item.title || item.name || item.videoTitle || '未知内容'
     },
-    // 获取集数
+    
     getEpisode(item) {
-      return item.episode || item.episodeIndex || item.ep || ''
+      return item.index || item.episode || item.episodeIndex || item.ep
     },
-    // 获取时间
+    
     getTime(item) {
-      return item.updateTime || item.lastPlayTime || item.createdAt || item.time || item.playTime || Date.now()
+      return item.save_time || item.updateTime || item.lastPlayTime || item.time || Date.now()
     },
-    // 获取进度百分比
+    
     getProgressPercent(item) {
-      if (!item.progress || !item.duration) return 0
-      return Math.min((item.progress / item.duration) * 100, 100)
+      if (!item.play_time || !item.duration) return 0
+      return Math.min((item.play_time / item.duration) * 100, 100)
     },
-    deleteItem(item, index) {
+    
+    clearAll() {
       uni.showModal({
         title: '提示',
-        content: '确定删除该记录？',
+        content: '确定清空所有观看记录？',
         success: (res) => {
           if (res.confirm) {
-            const id = item.id || item._id || item.videoId
-            if (!id) {
-              this.list.splice(index, 1)
-              uni.showToast({ title: '已删除', icon: 'none' })
-              return
-            }
             uni.request({
-              url: '/api/playrecords/' + id,
+              url: '/api/playrecords',
               method: 'DELETE',
               withCredentials: true,
               success: () => {
-                this.list.splice(index, 1)
-                uni.showToast({ title: '已删除', icon: 'none' })
+                this.list = []
+                uni.showToast({ title: '已清空', icon: 'success' })
               },
               fail: () => {
-                // 如果删除失败也本地移除
-                this.list.splice(index, 1)
-                uni.showToast({ title: '已删除', icon: 'none' })
+                uni.showToast({ title: '操作失败', icon: 'none' })
               }
             })
           }
         }
       })
     },
+    
+    deleteItem(item, index) {
+      uni.showModal({
+        title: '提示',
+        content: '确定删除该记录？',
+        success: (res) => {
+          if (res.confirm) {
+            const key = item.key || item.id || item._id
+            if (key) {
+              uni.request({
+                url: '/api/playrecords?key=' + encodeURIComponent(key),
+                method: 'DELETE',
+                withCredentials: true,
+                success: () => {
+                  this.list.splice(index, 1)
+                  uni.showToast({ title: '已删除', icon: 'none' })
+                },
+                fail: () => {
+                  this.list.splice(index, 1)
+                  uni.showToast({ title: '已删除', icon: 'none' })
+                }
+              })
+            } else {
+              this.list.splice(index, 1)
+              uni.showToast({ title: '已删除', icon: 'none' })
+            }
+          }
+        }
+      })
+    },
+    
     goDetail(item) {
-      const id = item.videoId || item.id || item._id
-      const type = item.type || item.videoType || 'movie'
       const title = this.getTitle(item)
+      const key = item.key || ''
       
-      // 如果有播放地址，直接播放
-      if (item.url || item.playUrl) {
+      if (key) {
+        const parts = key.split('+')
+        if (parts.length >= 2) {
+          uni.navigateTo({
+            url: '/pages/play/play?title=' + encodeURIComponent(title) + '&q=' + encodeURIComponent(title)
+          })
+          return
+        }
+      }
+      
+      if (item.url) {
         const playData = {
           title: title,
-          poster: this.getCover(item),
-          episodes: item.url ? [item.url] : [item.playUrl],
-          episodes_titles: item.episode ? ['第' + item.episode + '集'] : ['正片']
+          poster: item.cover,
+          episodes: [item.url],
+          episodes_titles: ['正片']
         }
         uni.navigateTo({
           url: '/pages/play/play?title=' + encodeURIComponent(title) + '&data=' + encodeURIComponent(JSON.stringify(playData))
@@ -157,28 +219,11 @@ export default {
         return
       }
       
-      // 否则搜索
-      uni.showLoading({ title: '搜索中...' })
-      uni.request({
-        url: '/api/search?q=' + encodeURIComponent(title),
-        withCredentials: true,
-        success: (res) => {
-          uni.hideLoading()
-          if (res.data && res.data.results && res.data.results.length > 0) {
-            const first = res.data.results[0]
-            uni.navigateTo({
-              url: '/pages/play/play?title=' + encodeURIComponent(first.title) + '&data=' + encodeURIComponent(JSON.stringify(first))
-            })
-          } else {
-            uni.showToast({ title: '未找到播放源', icon: 'none' })
-          }
-        },
-        fail: () => {
-          uni.hideLoading()
-          uni.showToast({ title: '搜索失败', icon: 'none' })
-        }
+      uni.navigateTo({
+        url: '/pages/play/play?title=' + encodeURIComponent(title) + '&q=' + encodeURIComponent(title)
       })
     },
+    
     formatTime(timestamp) {
       if (!timestamp) return ''
       const ts = timestamp > 9999999999 ? timestamp : timestamp * 1000
@@ -195,6 +240,7 @@ export default {
       const d = String(date.getDate()).padStart(2, '0')
       return `${m}-${d}`
     },
+    
     formatProgress(progress, duration) {
       if (!progress) return ''
       const formatNum = (n) => {
@@ -240,6 +286,16 @@ export default {
   color: $color-text;
   font-size: 36rpx;
   font-weight: bold;
+  flex: 1;
+}
+
+.clear-all {
+  padding: 12rpx 24rpx;
+  
+  text {
+    color: $color-primary;
+    font-size: 26rpx;
+  }
 }
 
 .content {
@@ -276,6 +332,7 @@ export default {
 .title {
   color: $color-text;
   font-size: 30rpx;
+  font-weight: bold;
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -289,38 +346,48 @@ export default {
   gap: 16rpx;
 }
 
-.episode {
+.source {
   color: $color-secondary;
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+  background: rgba($color-secondary, 0.2);
+  border-radius: 8rpx;
+}
+
+.episode {
+  color: $color-warning;
   font-size: 24rpx;
 }
 
 .time {
   color: $color-text-muted;
   font-size: 24rpx;
+  margin-top: 12rpx;
+  display: block;
 }
 
-.progress {
-  margin-top: 16rpx;
+.progress-row {
+  margin-top: 12rpx;
 }
 
 .progress-bar {
   width: 100%;
-  height: 8rpx;
+  height: 6rpx;
   background: $color-bg-tertiary;
-  border-radius: 4rpx;
+  border-radius: 3rpx;
   overflow: hidden;
 }
 
 .progress-fill {
   height: 100%;
   background: $color-primary;
-  border-radius: 4rpx;
+  border-radius: 3rpx;
 }
 
 .progress-text {
   color: $color-text-muted;
-  font-size: 22rpx;
-  margin-top: 8rpx;
+  font-size: 20rpx;
+  margin-top: 6rpx;
   display: block;
 }
 
@@ -337,11 +404,30 @@ export default {
 }
 
 .loading {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 48rpx;
   
   text {
     color: $color-text-muted;
+    font-size: 26rpx;
+    margin-top: 16rpx;
+  }
+}
+
+.loading-spinner {
+  width: 48rpx;
+  height: 48rpx;
+  border: 4rpx solid $color-bg-tertiary;
+  border-top-color: $color-primary;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
   }
 }
 
@@ -351,16 +437,22 @@ export default {
   align-items: center;
   justify-content: center;
   padding: 100rpx 40rpx;
-  
-  text {
-    color: $color-text-muted;
-    font-size: 30rpx;
-  }
-  
-  .empty-tip {
-    color: $color-text-muted;
-    font-size: 26rpx;
-    margin-top: 16rpx;
-  }
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.empty-text {
+  color: $color-text;
+  font-size: 32rpx;
+  font-weight: bold;
+}
+
+.empty-tip {
+  color: $color-text-muted;
+  font-size: 26rpx;
+  margin-top: 12rpx;
 }
 </style>
