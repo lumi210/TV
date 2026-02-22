@@ -76,11 +76,16 @@ export default {
             if (Array.isArray(res.data)) {
               this.list = res.data
             } else if (typeof res.data === 'object') {
-              const records = res.data.records || res.data.list || res.data.data || []
+              const records = res.data.records || res.data.list || res.data.data
               if (Array.isArray(records)) {
                 this.list = records
-              } else if (typeof records === 'object') {
+              } else if (records && typeof records === 'object') {
                 this.list = Object.entries(records).map(([key, value]) => ({
+                  key,
+                  ...value
+                }))
+              } else {
+                this.list = Object.entries(res.data).map(([key, value]) => ({
                   key,
                   ...value
                 }))

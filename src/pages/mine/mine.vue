@@ -195,9 +195,11 @@ export default {
             } else if (res.data.list) {
               this.playCount = res.data.list.length
             } else if (res.data.records) {
-              this.playCount = res.data.records.length
+              this.playCount = Array.isArray(res.data.records) ? res.data.records.length : Object.keys(res.data.records).length
             } else if (res.data.data && Array.isArray(res.data.data)) {
               this.playCount = res.data.data.length
+            } else {
+              this.playCount = Object.keys(res.data).length
             }
           }
         }
