@@ -65,6 +65,14 @@
         <text class="desc" v-if="info.desc">{{ info.desc }}</text>
       </view>
 
+      <!-- 测速进度 -->
+      <view class="speed-test-progress" v-if="isSpeedTesting">
+        <view class="speed-test-bar">
+          <view class="speed-test-fill" :style="{ width: speedTestProgress + '%' }"></view>
+        </view>
+        <text class="speed-test-text">正在检测播放源速度... {{ speedTestProgress }}%</text>
+      </view>
+
       <!-- Tab 切换 -->
       <view class="tab-container">
         <view 
@@ -80,13 +88,12 @@
           @click="activeTab = 'sources'"
         >
           <text>换源</text>
-          <text class="source-count" v-if="allSources.length > 1">({{ allSources.length }})</text>
+          <text class="source-count" v-if="availableSources.length > 1">({{ availableSources.length }})</text>
         </view>
       </view>
 
       <!-- 选集 Tab 内容 -->
       <view v-if="activeTab === 'episodes'" class="tab-content">
-        <!-- 当前源的集数 -->
         <view class="episode-section" v-if="currentEpisodes.length > 0">
           <scroll-view scroll-x class="episode-scroll" enable-flex>
             <view class="episode-list">
@@ -110,13 +117,17 @@
           <view 
             class="source-card" 
             :class="{ active: currentSourceIndex === index }" 
-            v-for="(item, index) in allSources" 
+            v-for="(item, index) in availableSources" 
             :key="index" 
             @click="switchSource(index)"
           >
             <view class="source-card-main">
               <view class="source-card-info">
-                <text class="source-card-name">{{ item.source_name || ('源' + (index + 1)) }}</text>
+                <view class="source-card-name-row">
+                  <text class="source-card-name">{{ item.source_name || ('源' + (index + 1)) }}</text>
+                  <text class="source-speed-tag" v-if="item.speed">{{ item.speed }}ms</text>
+                  <text class="source-quality-tag" v-if="item.quality">{{ item.quality }}</text>
+                </view>
                 <text class="source-card-eps" v-if="item.episodes && item.episodes.length > 0">共{{ item.episodes.length }}集</text>
               </view>
               <view class="source-card-status">
@@ -124,15 +135,12 @@
                 <text class="status-tag" v-else>点击切换</text>
               </view>
             </view>
-            <view class="source-card-meta" v-if="item.source">
-              <text class="source-id">ID: {{ item.source }}</text>
-            </view>
           </view>
         </view>
 
-        <view class="source-tip" v-if="allSources.length <= 1">
+        <view class="source-tip" v-if="availableSources.length <= 1">
           <text>暂无其他播放源</text>
-          <text class="tip-sub">当前仅找到一个播放源</text>
+          <text class="tip-sub">当前仅找到一个可用播放源</text>
         </view>
       </view>
 
@@ -155,6 +163,7 @@ export default {
       errorMessage: '',
       info: {},
       allSources: [],
+      availableSources: [],
       otherResults: [],
       currentSourceIndex: 0,
       currentEpisodes: [],
@@ -169,12 +178,15 @@ export default {
       loadingText: '加载中...',
       retryCount: 0,
       maxRetry: 3,
-      activeTab: 'episodes'
+      activeTab: 'episodes',
+      isSpeedTesting: false,
+      speedTestProgress: 0,
+      speedTestResults: {}
     }
   },
   computed: {
     currentSource() {
-      return this.allSources[this.currentSourceIndex] || null
+      return this.availableSources[this.currentSourceIndex] || null
     }
   },
   onLoad(options) {
@@ -227,8 +239,10 @@ export default {
           source: data.source,
           source_name: data.source_name || '默认源',
           episodes: data.episodes,
-          episodes_titles: data.episodes_titles || []
+          episodes_titles: data.episodes_titles || [],
+          originalData: data
         }]
+        this.availableSources = [...this.allSources]
         this.currentEpisodes = data.episodes
         this.episodeTitles = data.episodes_titles || []
         this.playEpisode(0)
@@ -236,15 +250,16 @@ export default {
       
       this.isLoading = false
       
-      // 搜索获取更多播放源
       const searchTitle = data.title || data.name || data.search_title
       if (searchTitle) {
-        this.searchMoreSources(searchTitle)
+        this.searchAndTestSources(searchTitle)
       }
     },
     
-    searchMoreSources(keyword) {
-      console.log('[Play] searchMoreSources:', keyword)
+    searchAndTestSources(keyword) {
+      console.log('[Play] searchAndTestSources:', keyword)
+      this.loadingMessage = '正在搜索播放源...'
+      
       uni.request({
         url: '/api/search?q=' + encodeURIComponent(keyword),
         withCredentials: true,
@@ -252,6 +267,7 @@ export default {
           console.log('[Play] more sources response:', res.statusCode, res.data?.results?.length)
           if (res.statusCode === 200 && res.data && res.data.results && res.data.results.length > 0) {
             this.mergeSources(res.data.results)
+            this.testAllSources()
           }
         },
         fail: (err) => {
@@ -266,7 +282,6 @@ export default {
       results.forEach(item => {
         if (item.episodes && item.episodes.length > 0) {
           const key = item.source || item.source_name || 'unknown'
-          // 只添加不存在的源
           if (!existingKeys.has(key)) {
             existingKeys.add(key)
             this.allSources.push({
@@ -281,6 +296,114 @@ export default {
       })
       
       console.log('[Play] merged allSources:', this.allSources.length)
+    },
+    
+    async testAllSources() {
+      if (this.allSources.length <= 1) return
+      
+      this.isSpeedTesting = true
+      this.speedTestProgress = 0
+      
+      const results = []
+      const total = this.allSources.length
+      let tested = 0
+      
+      for (let i = 0; i < this.allSources.length; i++) {
+        const source = this.allSources[i]
+        const result = await this.testSourceSpeed(source)
+        tested++
+        this.speedTestProgress = Math.round((tested / total) * 100)
+        
+        if (result.available) {
+          results.push({
+            ...source,
+            speed: result.speed,
+            quality: result.quality,
+            available: true
+          })
+        }
+      }
+      
+      results.sort((a, b) => {
+        if (!a.speed) return 1
+        if (!b.speed) return -1
+        return a.speed - b.speed
+      })
+      
+      this.availableSources = results
+      
+      if (results.length > 0 && results[0].source !== this.allSources[this.currentSourceIndex]?.source) {
+        const bestSource = results[0]
+        const bestIndex = this.availableSources.findIndex(s => s.source === bestSource.source)
+        if (bestIndex >= 0) {
+          this.currentSourceIndex = bestIndex
+          this.currentEpisodes = bestSource.episodes
+          this.episodeTitles = bestSource.episodes_titles || []
+          this.playEpisode(0)
+          uni.showToast({ 
+            title: '已切换到最快源: ' + bestSource.source_name, 
+            icon: 'none' 
+          })
+        }
+      }
+      
+      this.isSpeedTesting = false
+      console.log('[Play] speed test done, available:', results.length)
+    },
+    
+    testSourceSpeed(source) {
+      return new Promise((resolve) => {
+        if (!source.episodes || source.episodes.length === 0) {
+          resolve({ available: false, speed: null, quality: null })
+          return
+        }
+        
+        const url = source.episodes[0]
+        const startTime = Date.now()
+        let resolved = false
+        
+        const timeout = setTimeout(() => {
+          if (!resolved) {
+            resolved = true
+            resolve({ available: false, speed: null, quality: null })
+          }
+        }, 5000)
+        
+        uni.request({
+          url: url,
+          method: 'HEAD',
+          timeout: 5000,
+          success: (res) => {
+            if (!resolved) {
+              resolved = true
+              clearTimeout(timeout)
+              const speed = Date.now() - startTime
+              const available = res.statusCode >= 200 && res.statusCode < 400
+              resolve({ 
+                available, 
+                speed: available ? speed : null,
+                quality: this.detectQuality(res.header)
+              })
+            }
+          },
+          fail: () => {
+            if (!resolved) {
+              resolved = true
+              clearTimeout(timeout)
+              resolve({ available: false, speed: null, quality: null })
+            }
+          }
+        })
+      })
+    },
+    
+    detectQuality(headers) {
+      if (!headers) return '未知'
+      const contentType = headers['Content-Type'] || headers['content-type'] || ''
+      if (contentType.includes('mp4')) return 'MP4'
+      if (contentType.includes('m3u8')) return 'HLS'
+      if (contentType.includes('mpd')) return 'DASH'
+      return 'HLS'
     },
     
     searchAndLoad(keyword) {
@@ -308,7 +431,7 @@ export default {
       })
     },
     
-    processSearchResults(results) {
+    async processSearchResults(results) {
       console.log('[Play] processSearchResults:', results.length)
       if (!results || results.length === 0) {
         this.errorMessage = '未找到播放源'
@@ -347,19 +470,20 @@ export default {
       this.allSources = Array.from(sourcesMap.values())
       console.log('[Play] allSources:', this.allSources.length)
       
-      this.otherResults = results.filter(item => {
-        return !item.episodes || item.episodes.length === 0
-      })
-      
       if (this.allSources.length > 0) {
-        this.currentSourceIndex = 0
-        this.currentEpisodes = this.allSources[0].episodes
-        this.episodeTitles = this.allSources[0].episodes_titles || []
-        this.playEpisode(0)
+        await this.testAllSources()
+        
+        if (this.availableSources.length === 0) {
+          this.availableSources = [this.allSources[0]]
+          this.currentEpisodes = this.allSources[0].episodes
+          this.episodeTitles = this.allSources[0].episodes_titles || []
+          this.playEpisode(0)
+        }
       } else {
         this.errorMessage = '未找到可播放源'
-        this.isLoading = false
       }
+      
+      this.isLoading = false
     },
     
     switchSource(index) {
@@ -369,7 +493,7 @@ export default {
       this.savePlayRecord()
       
       this.currentSourceIndex = index
-      const source = this.allSources[index]
+      const source = this.availableSources[index]
       if (source && source.episodes && source.episodes.length > 0) {
         this.currentEpisodes = source.episodes
         this.episodeTitles = source.episodes_titles || []
@@ -473,8 +597,7 @@ export default {
         this.isBuffering = false
         this.errorMessage = '视频播放失败，请尝试其他源'
         
-        // 如果有多个源，提示切换
-        if (this.allSources.length > 1) {
+        if (this.availableSources.length > 1) {
           uni.showModal({
             title: '播放失败',
             content: '当前源播放失败，是否切换到其他播放源？',
@@ -825,6 +948,33 @@ export default {
   overflow: hidden;
 }
 
+/* 测速进度 */
+.speed-test-progress {
+  padding: 24rpx;
+  background: $color-bg-secondary;
+}
+
+.speed-test-bar {
+  height: 8rpx;
+  background: $color-bg;
+  border-radius: 4rpx;
+  overflow: hidden;
+}
+
+.speed-test-fill {
+  height: 100%;
+  background: $color-primary;
+  transition: width 0.3s;
+}
+
+.speed-test-text {
+  display: block;
+  margin-top: 12rpx;
+  color: $color-text-muted;
+  font-size: 24rpx;
+  text-align: center;
+}
+
 /* Tab 切换样式 */
 .tab-container {
   display: flex;
@@ -941,11 +1091,32 @@ export default {
   flex: 1;
 }
 
+.source-card-name-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
 .source-card-name {
   color: $color-text;
   font-size: 30rpx;
   font-weight: bold;
-  display: block;
+}
+
+.source-speed-tag {
+  font-size: 22rpx;
+  color: $color-success;
+  background: rgba($color-success, 0.15);
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.source-quality-tag {
+  font-size: 22rpx;
+  color: $color-secondary;
+  background: rgba($color-secondary, 0.15);
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
 }
 
 .source-card-eps {
@@ -971,18 +1142,6 @@ export default {
     background: rgba($color-primary, 0.2);
     color: $color-primary;
   }
-}
-
-.source-card-meta {
-  margin-top: 12rpx;
-  padding-top: 12rpx;
-  border-top: 1rpx solid $color-border;
-}
-
-.source-id {
-  font-size: 22rpx;
-  color: $color-text-muted;
-  font-family: monospace;
 }
 
 .source-tip {
