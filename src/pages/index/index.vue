@@ -2,7 +2,7 @@
   <view class="page">
     <!-- Custom Navigation Bar -->
     <view class="custom-navbar">
-      <text class="navbar-title">LunaTV</text>
+      <text class="navbar-title">{{ siteName }}</text>
       <view class="navbar-search" @click="goSearch">
         <text class="search-icon">&#128269;</text>
         <text class="search-placeholder">搜索影片...</text>
@@ -321,6 +321,7 @@
 export default {
   data() {
     return {
+      siteName: 'LunaTV',
       isLoggedIn: false,
       loading: false,
       refreshing: false,
@@ -339,9 +340,28 @@ export default {
   },
   onShow() {
     this.isLoggedIn = !!uni.getStorageSync('userInfo')
+    this.loadSiteConfig()
     this.loadData()
   },
   methods: {
+    loadSiteConfig() {
+      uni.request({
+        url: '/api/server-config',
+        withCredentials: true,
+        success: (res) => {
+          if (res.statusCode === 200 && res.data && res.data.SiteName) {
+            this.siteName = res.data.SiteName
+            uni.setStorageSync('siteName', res.data.SiteName)
+          }
+        },
+        fail: () => {
+          const cached = uni.getStorageSync('siteName')
+          if (cached) {
+            this.siteName = cached
+          }
+        }
+      })
+    },
     getPoster(item) {
       if (!item.poster && !item.cover && !item.pic) {
         return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjgwIiB2aWV3Qm94PSIwIDAgMjAwIDI4MCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyODAiLz48dGV4dCB4PSIxMDAiIHk9IjE0MCIgZmlsbD0iIzg4OCIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+5peg5rSE5Zu+54mHPC90ZXh0Pjwvc3ZnPg=='

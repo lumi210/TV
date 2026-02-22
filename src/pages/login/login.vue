@@ -9,7 +9,7 @@
 
     <view class="content">
       <view class="logo-section">
-        <text class="app-name">LunaTV</text>
+        <text class="app-name">{{ siteName }}</text>
         <text class="app-desc">影视聚合播放平台</text>
       </view>
 
@@ -37,9 +37,16 @@
 export default {
   data() {
     return {
+      siteName: 'LunaTV',
       username: '',
       password: '',
       loading: false
+    }
+  },
+  onShow() {
+    const cached = uni.getStorageSync('siteName')
+    if (cached) {
+      this.siteName = cached
     }
   },
   methods: {
