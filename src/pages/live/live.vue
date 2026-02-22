@@ -99,27 +99,33 @@ export default {
   methods: {
     loadSources() {
       this.loading = true
+      this.sources = []
+      this.channels = []
       uni.request({
         url: '/api/live/sources',
         withCredentials: true,
         success: (res) => {
-          console.log('[Live] sources response:', res.data)
+          console.log('[Live] sources response:', JSON.stringify(res.data, null, 2))
           if (res.statusCode === 200 && res.data) {
+            let sourceList = []
             if (res.data.success && res.data.data && Array.isArray(res.data.data)) {
-              this.sources = res.data.data
+              sourceList = res.data.data
             } else if (res.data.sources && Array.isArray(res.data.sources)) {
-              this.sources = res.data.sources
+              sourceList = res.data.sources
             } else if (Array.isArray(res.data)) {
-              this.sources = res.data
+              sourceList = res.data
             }
-            console.log('[Live] parsed sources:', this.sources.length)
+            this.sources = sourceList.filter(s => !s.disabled)
+            console.log('[Live] parsed sources:', this.sources.length, this.sources.map(s => ({ key: s.key, name: s.name })))
             if (this.sources.length > 0) {
               const firstSource = this.sources[0]
-              this.loadChannels(firstSource.key || firstSource.name || firstSource.id)
+              console.log('[Live] loading channels for source:', firstSource.key)
+              this.loadChannels(firstSource.key)
             } else {
               this.loading = false
             }
           } else {
+            console.log('[Live] no data or error:', res.statusCode, res.data)
             this.loading = false
           }
         },
@@ -132,16 +138,19 @@ export default {
     },
     loadChannels(sourceKey) {
       if (!sourceKey) {
+        console.error('[Live] loadChannels: sourceKey is empty')
         this.loading = false
         return
       }
       this.loading = true
       this.channels = []
+      console.log('[Live] requesting channels for sourceKey:', sourceKey)
       uni.request({
         url: '/api/live/channels?source=' + encodeURIComponent(sourceKey),
         withCredentials: true,
         success: (res) => {
-          console.log('[Live] channels response:', res.data)
+          console.log('[Live] channels response status:', res.statusCode)
+          console.log('[Live] channels response:', res.data ? JSON.stringify(res.data).substring(0, 500) : 'null')
           if (res.statusCode === 200 && res.data) {
             let channelList = []
             if (res.data.success && res.data.data && Array.isArray(res.data.data)) {
@@ -157,6 +166,11 @@ export default {
             }
             this.channels = this.parseChannels(channelList)
             console.log('[Live] parsed channels:', this.channels.length)
+            if (this.channels.length > 0) {
+              console.log('[Live] first channel:', this.channels[0])
+            }
+          } else {
+            console.log('[Live] channels request failed or no data')
           }
         },
         fail: (err) => {
