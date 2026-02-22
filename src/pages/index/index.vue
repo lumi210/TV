@@ -112,7 +112,7 @@
             更多 <text class="more-arrow">&#10095;</text>
           </text>
         </view>
-        <scroll-view scroll-x class="scroll-x" show-scrollbar="false">
+        <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-flex>
           <view class="video-list">
             <view class="video-card" v-for="(item, index) in movies" :key="index" @click="searchAndPlay(item)">
               <view class="video-poster-wrap">
@@ -143,7 +143,7 @@
             更多 <text class="more-arrow">&#10095;</text>
           </text>
         </view>
-        <scroll-view scroll-x class="scroll-x" show-scrollbar="false">
+        <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-flex>
           <view class="video-list">
             <view class="video-card" v-for="(item, index) in tvShows" :key="index" @click="searchAndPlay(item)">
               <view class="video-poster-wrap">
@@ -174,7 +174,7 @@
             更多 <text class="more-arrow">&#10095;</text>
           </text>
         </view>
-        <scroll-view scroll-x class="scroll-x" show-scrollbar="false">
+        <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-flex>
           <view class="video-list">
             <view class="video-card" v-for="(item, index) in varietyShows" :key="index" @click="searchAndPlay(item)">
               <view class="video-poster-wrap">
@@ -205,7 +205,7 @@
             更多 <text class="more-arrow">&#10095;</text>
           </text>
         </view>
-        <scroll-view scroll-x class="scroll-x" show-scrollbar="false">
+        <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-flex>
           <view class="video-list">
             <view class="video-card" v-for="(item, index) in animes" :key="index" @click="searchAndPlay(item)">
               <view class="video-poster-wrap">
@@ -243,6 +243,21 @@
         <text>加载中...</text>
       </view>
       
+      <!-- Error State -->
+      <view class="error-state" v-if="!loading && loadError">
+        <text class="error-icon">&#9888;</text>
+        <text class="error-text">数据加载失败</text>
+        <text class="error-tip">请检查网络连接或稍后重试</text>
+        <view class="error-btn" @click="loadData">重新加载</view>
+      </view>
+      
+      <!-- Empty State -->
+      <view class="empty-state" v-if="!loading && !loadError && movies.length === 0 && tvShows.length === 0 && varietyShows.length === 0 && animes.length === 0">
+        <text class="empty-icon">&#128191;</text>
+        <text class="empty-text">暂无影片数据</text>
+        <text class="empty-tip">下拉刷新试试</text>
+      </view>
+      
       <view class="safe-area-bottom"></view>
     </scroll-view>
 
@@ -268,7 +283,8 @@ export default {
       movies: [],
       tvShows: [],
       varietyShows: [],
-      animes: []
+      animes: [],
+      loadError: false
     }
   },
   onShow() {
@@ -277,15 +293,23 @@ export default {
   },
   methods: {
     getPoster(item) {
-      return item.poster || item.cover || item.pic || '/static/default-cover.png'
+      if (!item.poster && !item.cover && !item.pic) {
+        return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjgwIiB2aWV3Qm94PSIwIDAgMjAwIDI4MCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyODAiLz48dGV4dCB4PSIxMDAiIHk9IjE0MCIgZmlsbD0iIzg4OCIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+5peg5rSE5Zu+54mHPC90ZXh0Pjwvc3ZnPg=='
+      }
+      return item.poster || item.cover || item.pic
     },
     
     getBackdrop(item) {
-      return item.backdrop || item.poster || item.cover || '/static/default-cover.png'
+      if (!item.backdrop && !item.poster && !item.cover) {
+        return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNDUwIiB2aWV3Qm94PSIwIDAgODAwIDQ1MCI+PHJlY3QgZmlsbD0iIzBmMGYxYSIgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0NTAiLz48dGV4dCB4PSI0MDAiIHk9IjIyNSIgZmlsbD0iIzg4OCIgZm9udC1zaXplPSIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+5peg5rSE5Zu+54mHPC90ZXh0Pjwvc3ZnPg=='
+      }
+      return item.backdrop || item.poster || item.cover
     },
     
     onImageError(e, item) {
-      console.log('image error:', item.title)
+      console.log('image load error:', item.title, item.poster)
+      item.poster = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjgwIiB2aWV3Qm94PSIwIDAgMjAwIDI4MCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyODAiLz48dGV4dCB4PSIxMDAiIHk9IjE0MCIgZmlsbD0iIzg4OCIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+5peg5rSE5Zu+54mHPC90ZXh0Pjwvc3ZnPg=='
+      this.$forceUpdate()
     },
     
     onTouchStart(e) {
@@ -348,12 +372,20 @@ export default {
     
     loadData() {
       this.loading = true
+      this.loadError = false
       Promise.all([
         this.loadMovies(),
         this.loadTvShows(),
         this.loadVariety(),
         this.loadAnime()
-      ]).finally(() => {
+      ]).then((results) => {
+        const hasError = results.some(r => r === 'error')
+        if (hasError) {
+          this.loadError = true
+        }
+      }).catch(() => {
+        this.loadError = true
+      }).finally(() => {
         this.loading = false
         this.updateBannerItems()
       })
@@ -375,7 +407,7 @@ export default {
           url: '/api/douban?type=movie&tag=%E7%83%AD%E9%97%A8&pageStart=0&pageSize=12',
           withCredentials: true,
           success: (res) => {
-            if (res.data && res.data.list) {
+            if (res.statusCode === 200 && res.data && res.data.list) {
               this.movies = res.data.list.map(item => ({
                 id: item.id,
                 title: item.title,
@@ -383,9 +415,15 @@ export default {
                 rate: item.rate,
                 year: item.year
               }))
+              resolve('success')
+            } else {
+              resolve('error')
             }
           },
-          complete: resolve
+          fail: () => {
+            resolve('error')
+          },
+          complete: () => {}
         })
       })
     },
@@ -396,7 +434,7 @@ export default {
           url: '/api/douban?type=tv&tag=%E7%83%AD%E9%97%A8&pageStart=0&pageSize=12',
           withCredentials: true,
           success: (res) => {
-            if (res.data && res.data.list) {
+            if (res.statusCode === 200 && res.data && res.data.list) {
               this.tvShows = res.data.list.map(item => ({
                 id: item.id,
                 title: item.title,
@@ -404,9 +442,15 @@ export default {
                 rate: item.rate,
                 year: item.year
               }))
+              resolve('success')
+            } else {
+              resolve('error')
             }
           },
-          complete: resolve
+          fail: () => {
+            resolve('error')
+          },
+          complete: () => {}
         })
       })
     },
@@ -417,7 +461,7 @@ export default {
           url: '/api/douban?type=tv&tag=%E7%BB%BC%E8%89%BA&pageStart=0&pageSize=12',
           withCredentials: true,
           success: (res) => {
-            if (res.data && res.data.list) {
+            if (res.statusCode === 200 && res.data && res.data.list) {
               this.varietyShows = res.data.list.map(item => ({
                 id: item.id,
                 title: item.title,
@@ -425,9 +469,15 @@ export default {
                 rate: item.rate,
                 year: item.year
               }))
+              resolve('success')
+            } else {
+              resolve('error')
             }
           },
-          complete: resolve
+          fail: () => {
+            resolve('error')
+          },
+          complete: () => {}
         })
       })
     },
@@ -438,7 +488,7 @@ export default {
           url: '/api/douban?type=tv&tag=%E5%8A%A8%E6%BC%AB&pageStart=0&pageSize=12',
           withCredentials: true,
           success: (res) => {
-            if (res.data && res.data.list) {
+            if (res.statusCode === 200 && res.data && res.data.list) {
               this.animes = res.data.list.map(item => ({
                 id: item.id,
                 title: item.title,
@@ -446,9 +496,15 @@ export default {
                 rate: item.rate,
                 year: item.year
               }))
+              resolve('success')
+            } else {
+              resolve('error')
             }
           },
-          complete: resolve
+          fail: () => {
+            resolve('error')
+          },
+          complete: () => {}
         })
       })
     },
@@ -702,12 +758,14 @@ export default {
 
 /* Scroll X */
 .scroll-x {
+  width: 100%;
   white-space: nowrap;
 }
 
 /* Video List */
 .video-list {
   display: flex;
+  flex-direction: row;
   padding: 0 24rpx;
   gap: 16rpx;
 }
@@ -832,6 +890,67 @@ export default {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Error State */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 48rpx;
+}
+
+.error-icon {
+  font-size: 80rpx;
+  color: $color-warning;
+  margin-bottom: 24rpx;
+}
+
+.error-text {
+  color: $color-text;
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-bottom: 12rpx;
+}
+
+.error-tip {
+  color: $color-text-muted;
+  font-size: 26rpx;
+  margin-bottom: 32rpx;
+}
+
+.error-btn {
+  background: linear-gradient(135deg, $color-primary 0%, darken($color-primary, 10%) 100%);
+  color: $color-text;
+  font-size: 28rpx;
+  padding: 20rpx 48rpx;
+  border-radius: 40rpx;
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 100rpx 48rpx;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  color: $color-text-muted;
+  margin-bottom: 24rpx;
+}
+
+.empty-text {
+  color: $color-text;
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-bottom: 12rpx;
+}
+
+.empty-tip {
+  color: $color-text-muted;
+  font-size: 26rpx;
 }
 
 /* Floating Search Button */
