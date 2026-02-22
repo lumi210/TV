@@ -342,22 +342,35 @@ export default {
         return a.speed - b.speed
       })
       
-      this.availableSources = results
       this.isSpeedTesting = false
-      
       console.log('[Play] speed test done, available:', results.length)
       
+      // 如果测速全部失败，使用原始源列表
+      if (results.length === 0) {
+        console.log('[Play] speed test all failed, using original sources')
+        this.availableSources = this.allSources.map((source, index) => ({
+          ...source,
+          speed: null,
+          quality: null,
+          available: true
+        }))
+      } else {
+        this.availableSources = results
+      }
+      
       // 测速完成后，使用最快的源播放
-      if (results.length > 0) {
-        const bestSource = results[0]
+      if (this.availableSources.length > 0) {
+        const bestSource = this.availableSources[0]
         this.currentSourceIndex = 0
         this.currentEpisodes = bestSource.episodes
         this.episodeTitles = bestSource.episodes_titles || []
         
-        uni.showToast({ 
-          title: '已选择最快源: ' + bestSource.source_name + ' (' + bestSource.speed + 'ms)', 
-          icon: 'none'
-        })
+        if (bestSource.speed) {
+          uni.showToast({ 
+            title: '已选择最快源: ' + bestSource.source_name + ' (' + bestSource.speed + 'ms)', 
+            icon: 'none'
+          })
+        }
         
         this.playEpisode(0)
         
