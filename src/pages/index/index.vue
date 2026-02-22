@@ -213,31 +213,30 @@
         </scroll-view>
       </view>
 
-      <!-- Hot Anime -->
-      <view class="section" v-if="animes.length > 0 && (activeCategory === 'all' || activeCategory === 'anime')">
+      <!-- Hot Anime - 今日番剧 -->
+      <view class="section" v-if="todayAnimes.length > 0 && (activeCategory === 'all' || activeCategory === 'anime')">
         <view class="section-header">
-          <text class="section-title">热门动漫</text>
-          <text class="section-more" @click="goMore('anime', '热门动漫')">
+          <text class="section-title">今日番剧</text>
+          <text class="section-more" @click="goMore('anime', '今日番剧')">
             更多 <text class="more-arrow">&#10095;</text>
           </text>
         </view>
         <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-flex>
           <view class="video-list">
-            <view class="video-card" v-for="(item, index) in animes" :key="index" @click="searchAndPlay(item)">
+            <view class="video-card" v-for="(item, index) in todayAnimes" :key="index" @click="playBangumi(item)">
               <view class="video-poster-wrap">
                 <image 
                   class="video-poster" 
-                  :src="getPoster(item)" 
+                  :src="getBangumiPoster(item)" 
                   mode="aspectFill" 
                   lazy-load
-                  @error="onImageError($event, item)"
                 />
-                <view class="video-rate" v-if="item.rate">
-                  <text>{{ item.rate }}</text>
+                <view class="video-rate" v-if="item.rating && item.rating.score">
+                  <text>{{ item.rating.score.toFixed(1) }}</text>
                 </view>
               </view>
               <view class="video-info">
-                <text class="video-title">{{ item.title || item.name }}</text>
+                <text class="video-title">{{ item.name_cn || item.name }}</text>
               </view>
             </view>
           </view>
@@ -301,7 +300,7 @@
       </view>
       
       <!-- Empty State -->
-      <view class="empty-state" v-if="!loading && !loadError && movies.length === 0 && tvShows.length === 0 && varietyShows.length === 0 && animes.length === 0 && shortDramas.length === 0">
+      <view class="empty-state" v-if="!loading && !loadError && movies.length === 0 && tvShows.length === 0 && varietyShows.length === 0 && todayAnimes.length === 0 && shortDramas.length === 0">
         <text class="empty-icon">&#128191;</text>
         <text class="empty-text">暂无影片数据</text>
         <text class="empty-tip">下拉刷新试试</text>
@@ -333,7 +332,7 @@ export default {
       movies: [],
       tvShows: [],
       varietyShows: [],
-      animes: [],
+      todayAnimes: [],
       shortDramas: [],
       loadError: false
     }
@@ -467,7 +466,7 @@ export default {
         this.loadMovies(),
         this.loadTvShows(),
         this.loadVariety(),
-        this.loadAnime(),
+        this.loadBangumiCalendar(),
         this.loadShortDramas()
       ]).then((results) => {
         const hasError = results.some(r => r === 'error')
@@ -573,32 +572,48 @@ export default {
       })
     },
     
-    loadAnime() {
+    loadBangumiCalendar() {
       return new Promise((resolve) => {
         uni.request({
-          url: '/api/douban?type=tv&tag=动漫&pageStart=0&pageSize=12',
+          url: '/api/proxy/bangumi?path=calendar',
           withCredentials: true,
           success: (res) => {
-            console.log('[Index] anime response:', res.statusCode, res.data)
-            if (res.statusCode === 200 && res.data && res.data.list) {
-              this.animes = res.data.list.map(item => ({
-                id: item.id,
-                title: item.title,
-                poster: item.poster,
-                rate: item.rate,
-                year: item.year
-              }))
+            console.log('[Index] bangumi calendar response:', res.statusCode, res.data?.length)
+            if (res.statusCode === 200 && Array.isArray(res.data)) {
+              const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+              const today = new Date()
+              const currentWeekday = weekdays[today.getDay()]
+              
+              const todayData = res.data.find(item => item.weekday && item.weekday.en === currentWeekday)
+              if (todayData && todayData.items) {
+                this.todayAnimes = todayData.items.slice(0, 12)
+                console.log('[Index] today animes:', this.todayAnimes.length)
+              }
               resolve('success')
             } else {
-              console.error('[Index] anime load failed:', res.data?.error || 'no data')
+              console.error('[Index] bangumi calendar load failed')
               resolve('error')
             }
           },
           fail: (err) => {
-            console.error('[Index] anime request failed:', err)
+            console.error('[Index] bangumi calendar request failed:', err)
             resolve('error')
           }
         })
+      })
+    },
+    
+    getBangumiPoster(item) {
+      if (item.images) {
+        return item.images.large || item.images.common || item.images.medium || item.images.small || item.images.grid || ''
+      }
+      return ''
+    },
+    
+    playBangumi(item) {
+      const title = item.name_cn || item.name
+      uni.navigateTo({
+        url: '/pages/play/play?q=' + encodeURIComponent(title) + '&title=' + encodeURIComponent(title)
       })
     },
     
