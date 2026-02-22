@@ -1,6 +1,6 @@
 export const config = {
   baseUrl: '',
-  serverUrl: 'http://47.113.227.252:3000',
+  serverUrl: '',
   timeout: 30000,
   headers: {
     'Content-Type': 'application/json'
@@ -16,5 +16,10 @@ export const getBaseUrl = () => {
 }
 
 export const getServerUrl = () => {
-  return config.serverUrl
+  return config.serverUrl || uni.getStorageSync('serverUrl') || ''
+}
+
+export const setServerUrl = (url) => {
+  config.serverUrl = url
+  uni.setStorageSync('serverUrl', url)
 }
