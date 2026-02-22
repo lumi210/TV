@@ -123,7 +123,7 @@
 </template>
 
 <script>
-let Hls = null
+import Hls from 'hls.js'
 
 export default {
   data() {
@@ -155,17 +155,7 @@ export default {
       return this.allSources[this.currentSourceIndex] || null
     }
   },
-  async onLoad(options) {
-    if (typeof window !== 'undefined') {
-      try {
-        const hlsModule = await import('hls.js')
-        Hls = hlsModule.default
-        console.log('[Play] HLS.js loaded, supported:', Hls.isSupported())
-      } catch (e) {
-        console.warn('[Play] HLS.js not available:', e)
-      }
-    }
-    
+  onLoad(options) {
     this.title = decodeURIComponent(options.title || '播放')
     
     if (options.data) {
@@ -316,19 +306,24 @@ export default {
         }
         console.log('[Play] original url:', url)
         
-        this.isHls = url.includes('.m3u8')
+        const isHlsVideo = url.includes('.m3u8')
         
-        if (this.isHls && Hls && Hls.isSupported()) {
+        if (isHlsVideo && Hls && Hls.isSupported() && typeof document !== 'undefined') {
+          this.isHls = true
+          this.videoUrl = url
           this.$nextTick(() => {
             this.initHlsPlayer(url)
           })
         } else {
+          this.isHls = false
           this.videoUrl = url
         }
       }
     },
     
     initHlsPlayer(url) {
+      if (typeof document === 'undefined') return
+      
       if (this.hlsInstance) {
         this.hlsInstance.destroy()
         this.hlsInstance = null
@@ -336,8 +331,7 @@ export default {
       
       const video = document.getElementById('hls-video')
       if (!video) {
-        console.error('[Play] video element not found')
-        this.videoUrl = url
+        console.error('[Play] video element not found, fallback to native')
         this.isHls = false
         return
       }
