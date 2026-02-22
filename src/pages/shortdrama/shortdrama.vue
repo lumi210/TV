@@ -52,14 +52,32 @@ export default {
         url: '/api/shortdrama/list?page=' + this.page + '&size=20',
         withCredentials: true,
         success: (res) => {
-          if (res.data && res.data.data && res.data.data.list) {
-            if (this.page === 1) {
-              this.dramas = res.data.data.list
-            } else {
-              this.dramas = this.dramas.concat(res.data.data.list)
+          console.log('[ShortDrama] response:', res.statusCode, JSON.stringify(res.data).substring(0, 500))
+          if (res.statusCode === 200 && res.data) {
+            let list = []
+            let hasMore = false
+            
+            if (Array.isArray(res.data)) {
+              list = res.data
+              hasMore = res.data.length === 20
+            } else if (res.data.list) {
+              list = res.data.list
+              hasMore = res.data.hasMore !== undefined ? res.data.hasMore : list.length === 20
+            } else if (res.data.data) {
+              list = Array.isArray(res.data.data) ? res.data.data : (res.data.data.list || [])
+              hasMore = res.data.data.hasMore !== undefined ? res.data.data.hasMore : list.length === 20
             }
-            this.hasMore = res.data.data.hasMore
+            
+            if (this.page === 1) {
+              this.dramas = list
+            } else {
+              this.dramas = this.dramas.concat(list)
+            }
+            this.hasMore = hasMore
           }
+        },
+        fail: (err) => {
+          console.error('[ShortDrama] request failed:', err)
         },
         complete: () => {
           this.loading = false
