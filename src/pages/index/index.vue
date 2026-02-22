@@ -111,6 +111,13 @@
         >
           <text>动漫</text>
         </view>
+        <view 
+          class="quick-cat-item" 
+          :class="{ active: activeCategory === 'shortdrama' }"
+          @click="activeCategory = 'shortdrama'"
+        >
+          <text>短剧</text>
+        </view>
       </view>
 
       <!-- Hot Movies -->
@@ -237,6 +244,39 @@
         </scroll-view>
       </view>
 
+      <!-- Hot Short Dramas -->
+      <view class="section" v-if="shortDramas.length > 0 && (activeCategory === 'all' || activeCategory === 'shortdrama')">
+        <view class="section-header">
+          <text class="section-title">热门短剧</text>
+          <text class="section-more" @click="goShortDrama">
+            更多 <text class="more-arrow">&#10095;</text>
+          </text>
+        </view>
+        <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-flex>
+          <view class="video-list">
+            <view class="video-card" v-for="(item, index) in shortDramas" :key="index" @click="playShortDrama(item)">
+              <view class="video-poster-wrap">
+                <image 
+                  class="video-poster" 
+                  :src="item.cover" 
+                  mode="aspectFill" 
+                  lazy-load
+                />
+                <view class="video-rate" v-if="item.score || item.vote_average">
+                  <text>{{ (item.score || item.vote_average).toFixed(1) }}</text>
+                </view>
+                <view class="video-episodes" v-if="item.episode_count && item.episode_count > 1">
+                  <text>{{ item.episode_count }}集</text>
+                </view>
+              </view>
+              <view class="video-info">
+                <text class="video-title">{{ item.name }}</text>
+              </view>
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+
       <!-- Login Tip -->
       <view class="login-tip" v-if="!isLoggedIn" @click="goLogin">
         <view class="login-tip-icon">
@@ -261,7 +301,7 @@
       </view>
       
       <!-- Empty State -->
-      <view class="empty-state" v-if="!loading && !loadError && movies.length === 0 && tvShows.length === 0 && varietyShows.length === 0 && animes.length === 0">
+      <view class="empty-state" v-if="!loading && !loadError && movies.length === 0 && tvShows.length === 0 && varietyShows.length === 0 && animes.length === 0 && shortDramas.length === 0">
         <text class="empty-icon">&#128191;</text>
         <text class="empty-text">暂无影片数据</text>
         <text class="empty-tip">下拉刷新试试</text>
@@ -293,6 +333,7 @@ export default {
       tvShows: [],
       varietyShows: [],
       animes: [],
+      shortDramas: [],
       loadError: false
     }
   },
@@ -406,7 +447,8 @@ export default {
         this.loadMovies(),
         this.loadTvShows(),
         this.loadVariety(),
-        this.loadAnime()
+        this.loadAnime(),
+        this.loadShortDramas()
       ]).then((results) => {
         const hasError = results.some(r => r === 'error')
         if (hasError) {
@@ -536,6 +578,42 @@ export default {
           complete: () => {}
         })
       })
+    },
+    
+    loadShortDramas() {
+      return new Promise((resolve) => {
+        uni.request({
+          url: '/api/shortdrama/list?categoryId=1&page=1&size=12',
+          withCredentials: true,
+          success: (res) => {
+            if (res.statusCode === 200 && res.data) {
+              let list = []
+              if (Array.isArray(res.data)) {
+                list = res.data
+              } else if (res.data.list) {
+                list = res.data.list
+              }
+              this.shortDramas = list.slice(0, 12)
+              resolve('success')
+            } else {
+              resolve('error')
+            }
+          },
+          fail: () => {
+            resolve('error')
+          }
+        })
+      })
+    },
+    
+    playShortDrama(item) {
+      uni.navigateTo({
+        url: '/pages/play/play?id=' + item.id + '&type=shortdrama&title=' + encodeURIComponent(item.name)
+      })
+    },
+    
+    goShortDrama() {
+      uni.switchTab({ url: '/pages/shortdrama/shortdrama' })
     },
     
     loadMore() {
@@ -880,7 +958,18 @@ export default {
   font-weight: bold;
   padding: 4rpx 10rpx;
   border-radius: 6rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.3);
+}
+
+.video-episodes {
+  position: absolute;
+  bottom: 8rpx;
+  left: 8rpx;
+  background: rgba(0, 0, 0, 0.7);
+  color: #4ecdc4;
+  font-size: 18rpx;
+  font-weight: bold;
+  padding: 4rpx 10rpx;
+  border-radius: 6rpx;
 }
 
 .video-info {
