@@ -296,14 +296,29 @@ export default {
       if (!item.poster && !item.cover && !item.pic) {
         return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjgwIiB2aWV3Qm94PSIwIDAgMjAwIDI4MCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyODAiLz48dGV4dCB4PSIxMDAiIHk9IjE0MCIgZmlsbD0iIzg4OCIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+5peg5rSE5Zu+54mHPC90ZXh0Pjwvc3ZnPg=='
       }
-      return item.poster || item.cover || item.pic
+      const url = item.poster || item.cover || item.pic
+      return this.proxyImage(url)
     },
     
     getBackdrop(item) {
       if (!item.backdrop && !item.poster && !item.cover) {
         return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MDAiIGhlaWdodD0iNDUwIiB2aWV3Qm94PSIwIDAgODAwIDQ1MCI+PHJlY3QgZmlsbD0iIzBmMGYxYSIgd2lkdGg9IjgwMCIgaGVpZ2h0PSI0NTAiLz48dGV4dCB4PSI0MDAiIHk9IjIyNSIgZmlsbD0iIzg4OCIgZm9udC1zaXplPSIyMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+5peg5rSE5Zu+54mHPC90ZXh0Pjwvc3ZnPg=='
       }
-      return item.backdrop || item.poster || item.cover
+      const url = item.backdrop || item.poster || item.cover
+      return this.proxyImage(url)
+    },
+    
+    proxyImage(url) {
+      if (!url || url.startsWith('data:')) return url
+      if (url.includes('doubanio.com') || url.includes('img9.doubanio.com') || url.includes('img2.doubanio.com') || url.includes('img1.doubanio.com') || url.includes('img3.doubanio.com') || url.includes('img4.doubanio.com') || url.includes('img5.doubanio.com') || url.includes('img6.doubanio.com') || url.includes('img7.doubanio.com')) {
+        return '/api/image-proxy?url=' + encodeURIComponent(url)
+      }
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        if (!url.includes('monkeycode-ai.online') && !url.includes('localhost')) {
+          return '/api/image-proxy?url=' + encodeURIComponent(url)
+        }
+      }
+      return url
     },
     
     onImageError(e, item) {

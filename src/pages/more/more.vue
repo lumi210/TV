@@ -11,6 +11,9 @@
     <scroll-view 
       scroll-y 
       class="content"
+      :refresher-enabled="true"
+      :refresher-triggered="refreshing"
+      @refresherrefresh="onRefresh"
       @scrolltolower="loadMore"
     >
       <view class="grid">
@@ -25,6 +28,7 @@
             :src="getPoster(item)" 
             mode="aspectFill"
             lazy-load
+            @error="onImageError($event, item)"
           />
           <view class="item-info">
             <text class="item-title">{{ item.title || item.name }}</text>
@@ -58,6 +62,7 @@ export default {
       title: '',
       list: [],
       loading: false,
+      refreshing: false,
       hasMore: true,
       pageStart: 0,
       pageSize: 24
@@ -74,7 +79,39 @@ export default {
     },
     
     getPoster(item) {
-      return item.poster || item.cover || item.pic || '/static/default-cover.png'
+      if (!item.poster && !item.cover && !item.pic) {
+        return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjgwIiB2aWV3Qm94PSIwIDAgMjAwIDI4MCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyODAiLz48dGV4dCB4PSIxMDAiIHk9IjE0MCIgZmlsbD0iIzg4OCIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+5peg5rSE5Zu+54mHPC90ZXh0Pjwvc3ZnPg=='
+      }
+      const url = item.poster || item.cover || item.pic
+      return this.proxyImage(url)
+    },
+    
+    proxyImage(url) {
+      if (!url || url.startsWith('data:')) return url
+      if (url.includes('doubanio.com') || url.includes('img9.doubanio.com') || url.includes('img2.doubanio.com') || url.includes('img1.doubanio.com') || url.includes('img3.doubanio.com') || url.includes('img4.doubanio.com') || url.includes('img5.doubanio.com') || url.includes('img6.doubanio.com') || url.includes('img7.doubanio.com')) {
+        return '/api/image-proxy?url=' + encodeURIComponent(url)
+      }
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        if (!url.includes('monkeycode-ai.online') && !url.includes('localhost')) {
+          return '/api/image-proxy?url=' + encodeURIComponent(url)
+        }
+      }
+      return url
+    },
+    
+    onImageError(e, item) {
+      console.log('image load error:', item.title)
+      item.poster = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjgwIiB2aWV3Qm94PSIwIDAgMjAwIDI4MCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyODAiLz48dGV4dCB4PSIxMDAiIHk9IjE0MCIgZmlsbD0iIzg4OCIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+5peg5rSE5Zu+54mHPC90ZXh0Pjwvc3ZnPg=='
+      this.$forceUpdate()
+    },
+    
+    onRefresh() {
+      this.refreshing = true
+      this.pageStart = 0
+      this.hasMore = true
+      this.loadData(true).finally(() => {
+        this.refreshing = false
+      })
     },
     
     async loadData(refresh = false) {
@@ -97,7 +134,7 @@ export default {
           })
         })
         
-        if (res.data && res.data.list) {
+        if (res.statusCode === 200 && res.data && res.data.list) {
           const items = res.data.list.map(item => ({
             id: item.id,
             title: item.title,
@@ -115,6 +152,8 @@ export default {
           if (items.length > 0) {
             this.pageStart += this.pageSize
           }
+        } else {
+          this.hasMore = false
         }
       } catch (error) {
         console.error('加载失败:', error)
@@ -130,7 +169,6 @@ export default {
     },
     
     getDoubanType() {
-      // movie 类型就是 movie，其他都是 tv
       return this.type === 'movie' ? 'movie' : 'tv'
     },
     
