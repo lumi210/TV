@@ -203,6 +203,8 @@ export default {
         this.errorMessage = '数据解析失败'
         this.isLoading = false
       }
+    } else if (options.id && options.type === 'shortdrama') {
+      this.loadShortDramaDetail(options.id, options.title)
     }
     
     if (options.q) {
@@ -223,6 +225,35 @@ export default {
     this.savePlayRecord()
   },
   methods: {
+    loadShortDramaDetail(id, title) {
+      console.log('[Play] loadShortDramaDetail:', id, title)
+      this.loadingMessage = '正在加载短剧详情...'
+      this.isLoading = true
+      
+      uni.request({
+        url: '/api/shortdrama/detail?id=' + id + '&name=' + encodeURIComponent(title || ''),
+        withCredentials: true,
+        success: (res) => {
+          console.log('[Play] shortdrama detail response:', res.statusCode, res.data)
+          if (res.statusCode === 200 && res.data && res.data.episodes) {
+            const data = {
+              ...res.data,
+              type: 'shortdrama'
+            }
+            this.initWithData(data)
+          } else {
+            this.errorMessage = res.data?.error || '获取短剧详情失败'
+            this.isLoading = false
+          }
+        },
+        fail: (err) => {
+          console.error('[Play] load shortdrama detail failed:', err)
+          this.errorMessage = '网络请求失败'
+          this.isLoading = false
+        }
+      })
+    },
+    
     initWithData(data) {
       console.log('[Play] initWithData:', data)
       this.id = data.id || data.vod_id || ''
@@ -566,6 +597,11 @@ export default {
         return
       }
       
+      if (url.startsWith('shortdrama:')) {
+        this.playShortDramaEpisode(url)
+        return
+      }
+      
       if (url.includes('.m3u8') && !url.includes('://')) {
         url = 'https:' + url
       }
@@ -578,6 +614,50 @@ export default {
       this.isLoading = false
       
       this.checkFavorite()
+    },
+    
+    playShortDramaEpisode(episodeUrl) {
+      console.log('[Play] playShortDramaEpisode:', episodeUrl)
+      this.isBuffering = true
+      this.loadingText = '正在获取播放地址...'
+      
+      const parts = episodeUrl.split(':')
+      if (parts.length < 3) {
+        this.errorMessage = '无效的短剧地址格式'
+        this.isBuffering = false
+        return
+      }
+      
+      const id = parts[1]
+      const episode = parseInt(parts[2]) + 1
+      
+      uni.request({
+        url: '/api/shortdrama/parse?id=' + id + '&episode=' + episode + '&proxy=true&name=' + encodeURIComponent(this.title || ''),
+        withCredentials: true,
+        success: (res) => {
+          console.log('[Play] shortdrama parse response:', res.statusCode, res.data)
+          if (res.statusCode === 200 && res.data && res.data.code === 0 && res.data.data) {
+            const playUrl = res.data.data.parsedUrl || res.data.data.proxyUrl || res.data.data.episode?.parsedUrl
+            if (playUrl) {
+              this.videoUrl = playUrl
+              this.errorMessage = ''
+              this.retryCount = 0
+            } else {
+              this.errorMessage = '未获取到播放地址'
+            }
+          } else {
+            this.errorMessage = res.data?.msg || '获取播放地址失败'
+          }
+          this.isBuffering = false
+          this.isLoading = false
+        },
+        fail: (err) => {
+          console.error('[Play] get shortdrama play url failed:', err)
+          this.errorMessage = '网络请求失败'
+          this.isBuffering = false
+          this.isLoading = false
+        }
+      })
     },
     
     onPlay() {
