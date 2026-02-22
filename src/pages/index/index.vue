@@ -913,6 +913,8 @@ export default {
 /* Content */
 .content {
   flex: 1;
+  height: calc(100vh - 88rpx - constant(safe-area-inset-top));
+  height: calc(100vh - 88rpx - env(safe-area-inset-top));
 }
 
 /* Section */
