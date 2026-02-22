@@ -225,32 +225,76 @@ export default {
     this.savePlayRecord()
   },
   methods: {
-    loadShortDramaDetail(id, title) {
+    async loadShortDramaDetail(id, title) {
       console.log('[Play] loadShortDramaDetail:', id, title)
       this.loadingMessage = '正在加载短剧详情...'
       this.isLoading = true
       
-      uni.request({
-        url: '/api/shortdrama/detail?id=' + id + '&name=' + encodeURIComponent(title || ''),
-        withCredentials: true,
-        success: (res) => {
-          console.log('[Play] shortdrama detail response:', res.statusCode, res.data)
-          if (res.statusCode === 200 && res.data && res.data.episodes) {
-            const data = {
-              ...res.data,
-              type: 'shortdrama'
-            }
-            this.initWithData(data)
-          } else {
-            this.errorMessage = res.data?.error || '获取短剧详情失败'
-            this.isLoading = false
+      try {
+        const result = await this.parseShortDramaInfo(id, title || '')
+        
+        if (result && result.totalEpisodes > 0) {
+          const data = {
+            id: id,
+            title: title,
+            poster: result.cover || '',
+            episodes: Array.from({ length: result.totalEpisodes }, (_, i) => `shortdrama:${id}:${i + 1}`),
+            episodes_titles: Array.from({ length: result.totalEpisodes }, (_, i) => `第${i + 1}集`),
+            source: 'shortdrama',
+            source_name: '短剧',
+            type: 'shortdrama',
+            desc: result.description || '',
+            type_name: '短剧',
+            drama_name: title
           }
-        },
-        fail: (err) => {
-          console.error('[Play] load shortdrama detail failed:', err)
-          this.errorMessage = '网络请求失败'
+          this.initWithData(data)
+        } else {
+          this.errorMessage = result?.msg || '获取短剧详情失败'
           this.isLoading = false
         }
+      } catch (err) {
+        console.error('[Play] load shortdrama detail failed:', err)
+        this.errorMessage = '网络请求失败'
+        this.isLoading = false
+      }
+    },
+    
+    parseShortDramaInfo(id, dramaName) {
+      return new Promise((resolve) => {
+        const tryParse = (episode, retriesLeft) => {
+          uni.request({
+            url: '/api/shortdrama/parse?id=' + id + '&episode=' + episode + '&proxy=true&name=' + encodeURIComponent(dramaName),
+            withCredentials: true,
+            success: (res) => {
+              console.log('[Play] shortdrama parse response:', res.statusCode, res.data)
+              if (res.statusCode === 200 && res.data && res.data.totalEpisodes) {
+                resolve({
+                  totalEpisodes: res.data.totalEpisodes || 1,
+                  cover: '',
+                  description: '',
+                  videoName: res.data.title || dramaName
+                })
+              } else if (retriesLeft > 0) {
+                const nextEpisode = episode === 1 ? 2 : (episode === 2 ? 0 : 1)
+                console.log('[Play] retry with episode:', nextEpisode)
+                tryParse(nextEpisode, retriesLeft - 1)
+              } else {
+                resolve({ msg: res.data?.error || '解析失败', totalEpisodes: 0 })
+              }
+            },
+            fail: (err) => {
+              console.error('[Play] parse shortdrama failed:', err)
+              if (retriesLeft > 0) {
+                const nextEpisode = episode === 1 ? 2 : (episode === 2 ? 0 : 1)
+                console.log('[Play] retry with episode:', nextEpisode)
+                tryParse(nextEpisode, retriesLeft - 1)
+              } else {
+                resolve({ msg: '网络请求失败', totalEpisodes: 0 })
+              }
+            }
+          })
+        }
+        tryParse(1, 2)
       })
     },
     
@@ -649,8 +693,13 @@ export default {
       
       console.log('[Play] parse params - id:', id, 'episode:', episode, 'dramaName:', dramaName)
       
+      this.tryParseShortDramaEpisode(id, episode, dramaName, 0)
+    },
+    
+    tryParseShortDramaEpisode(id, episode, dramaName, retryCount) {
+      const maxRetries = 3
       const apiUrl = '/api/shortdrama/parse?id=' + id + '&episode=' + episode + '&proxy=true&name=' + encodeURIComponent(dramaName)
-      console.log('[Play] request url:', apiUrl)
+      console.log('[Play] request url:', apiUrl, 'retry:', retryCount)
       
       uni.request({
         url: apiUrl,
@@ -659,15 +708,7 @@ export default {
           console.log('[Play] shortdrama parse response status:', res.statusCode)
           console.log('[Play] shortdrama parse response data:', JSON.stringify(res.data || {}))
           
-          if (res.statusCode === 200 && res.data) {
-            if (res.data.error) {
-              console.error('[Play] parse returned error:', res.data.error)
-              this.isBuffering = false
-              this.isLoading = false
-              this.errorMessage = res.data.error
-              return
-            }
-            
+          if (res.statusCode === 200 && res.data && !res.data.error) {
             const playUrl = res.data.url || res.data.proxyUrl
             if (playUrl) {
               this.videoUrl = playUrl
@@ -676,15 +717,17 @@ export default {
               this.isBuffering = false
               this.isLoading = false
               console.log('[Play] got playUrl:', playUrl)
-            } else {
-              console.error('[Play] no playUrl in response')
-              this.isBuffering = false
-              this.isLoading = false
-              this.errorMessage = '未获取到播放地址'
+              return
             }
+          }
+          
+          if (retryCount < maxRetries && episode < this.currentEpisodes.length) {
+            console.log('[Play] parse failed, trying next episode:', episode + 1)
+            this.currentEpisode = episode
+            this.tryParseShortDramaEpisode(id, episode + 1, dramaName, retryCount + 1)
           } else {
-            const errorMsg = res.data?.error || '获取播放地址失败(HTTP ' + res.statusCode + ')'
-            console.error('[Play] parse failed:', errorMsg)
+            const errorMsg = res.data?.error || '获取播放地址失败'
+            console.error('[Play] parse failed after retries:', errorMsg)
             this.isBuffering = false
             this.isLoading = false
             this.errorMessage = errorMsg
@@ -692,9 +735,15 @@ export default {
         },
         fail: (err) => {
           console.error('[Play] get shortdrama play url failed:', err)
-          this.isBuffering = false
-          this.isLoading = false
-          this.errorMessage = '网络请求失败'
+          if (retryCount < maxRetries && episode < this.currentEpisodes.length) {
+            console.log('[Play] request failed, trying next episode:', episode + 1)
+            this.currentEpisode = episode
+            this.tryParseShortDramaEpisode(id, episode + 1, dramaName, retryCount + 1)
+          } else {
+            this.isBuffering = false
+            this.isLoading = false
+            this.errorMessage = '网络请求失败'
+          }
         }
       })
     },
