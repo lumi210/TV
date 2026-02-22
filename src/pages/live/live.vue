@@ -105,13 +105,17 @@ export default {
         success: (res) => {
           console.log('[Live] sources response:', res.data)
           if (res.statusCode === 200 && res.data) {
-            if (res.data.sources && Array.isArray(res.data.sources)) {
+            if (res.data.success && res.data.data && Array.isArray(res.data.data)) {
+              this.sources = res.data.data
+            } else if (res.data.sources && Array.isArray(res.data.sources)) {
               this.sources = res.data.sources
             } else if (Array.isArray(res.data)) {
               this.sources = res.data
             }
+            console.log('[Live] parsed sources:', this.sources.length)
             if (this.sources.length > 0) {
-              this.loadChannels(this.sources[0].key || this.sources[0].name || this.sources[0].id)
+              const firstSource = this.sources[0]
+              this.loadChannels(firstSource.key || firstSource.name || firstSource.id)
             } else {
               this.loading = false
             }
@@ -139,15 +143,19 @@ export default {
         success: (res) => {
           console.log('[Live] channels response:', res.data)
           if (res.statusCode === 200 && res.data) {
-            if (res.data.data && Array.isArray(res.data.data)) {
-              this.channels = this.parseChannels(res.data.data)
+            let channelList = []
+            if (res.data.success && res.data.data && Array.isArray(res.data.data)) {
+              channelList = res.data.data
+            } else if (res.data.data && Array.isArray(res.data.data)) {
+              channelList = res.data.data
             } else if (res.data.channels && Array.isArray(res.data.channels)) {
-              this.channels = this.parseChannels(res.data.channels)
+              channelList = res.data.channels
             } else if (res.data.list && Array.isArray(res.data.list)) {
-              this.channels = this.parseChannels(res.data.list)
+              channelList = res.data.list
             } else if (Array.isArray(res.data)) {
-              this.channels = this.parseChannels(res.data)
+              channelList = res.data
             }
+            this.channels = this.parseChannels(channelList)
             console.log('[Live] parsed channels:', this.channels.length)
           }
         },
