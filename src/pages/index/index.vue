@@ -576,9 +576,10 @@ export default {
     loadAnime() {
       return new Promise((resolve) => {
         uni.request({
-          url: '/api/douban?type=tv&tag=%E5%8A%A8%E6%BC%AB&pageStart=0&pageSize=12',
+          url: '/api/douban?type=tv&tag=动漫&pageStart=0&pageSize=12',
           withCredentials: true,
           success: (res) => {
+            console.log('[Index] anime response:', res.statusCode, res.data)
             if (res.statusCode === 200 && res.data && res.data.list) {
               this.animes = res.data.list.map(item => ({
                 id: item.id,
@@ -589,13 +590,14 @@ export default {
               }))
               resolve('success')
             } else {
+              console.error('[Index] anime load failed:', res.data?.error || 'no data')
               resolve('error')
             }
           },
-          fail: () => {
+          fail: (err) => {
+            console.error('[Index] anime request failed:', err)
             resolve('error')
-          },
-          complete: () => {}
+          }
         })
       })
     },
