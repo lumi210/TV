@@ -835,13 +835,28 @@ export default {
     
     onFullscreenChange(e) {
       console.log('[Play] fullscreen change:', e.detail)
-      // 全屏时自动切换横屏
-      if (e.detail.fullScreen) {
-        // 全屏时设置横屏
-        plus.screen.lockOrientation('landscape')
+      const isFullscreen = e.detail.fullScreen || e.detail.direction === 'horizontal'
+      
+      if (isFullscreen) {
+        if (typeof plus !== 'undefined' && plus.screen) {
+          plus.screen.lockOrientation('landscape')
+        }
+        this.lockScreenOrientation('landscape')
       } else {
-        // 退出全屏时恢复竖屏
-        plus.screen.lockOrientation('portrait')
+        if (typeof plus !== 'undefined' && plus.screen) {
+          plus.screen.lockOrientation('portrait')
+        }
+        this.lockScreenOrientation('portrait')
+      }
+    },
+    
+    lockScreenOrientation(orientation) {
+      if (typeof screen !== 'undefined' && screen.orientation && screen.orientation.lock) {
+        if (orientation === 'landscape') {
+          screen.orientation.lock('landscape').catch(() => {})
+        } else {
+          screen.orientation.lock('portrait').catch(() => {})
+        }
       }
     },
     
