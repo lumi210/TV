@@ -12,6 +12,12 @@ export default defineConfig({
       '/api': {
         target: 'http://47.113.227.252:3000',
         changeOrigin: true
+      },
+      '/shortdrama-api': {
+        target: 'https://wwzy.tv',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/shortdrama-api/, '/api.php/provide/vod'),
+        secure: false
       }
     }
   }

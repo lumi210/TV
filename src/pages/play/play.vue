@@ -289,7 +289,7 @@ export default {
     
     fetchShortDramaFromRemoteApi(id, dramaName) {
       return new Promise((resolve) => {
-        const apiUrl = 'https://wwzy.tv/api.php/provide/vod?ac=videolist&ids=' + id
+        const apiUrl = '/shortdrama-api?ac=videolist&ids=' + id
         console.log('[Play] fetching from remote api:', apiUrl)
         
         uni.request({
