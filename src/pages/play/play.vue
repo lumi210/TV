@@ -261,14 +261,10 @@ export default {
     
     parseShortDramaInfo(id, dramaName) {
       return new Promise((resolve) => {
-        const savedCookie = uni.getStorageSync('user_cookie') || ''
         const tryParse = (episode, retriesLeft) => {
           uni.request({
             url: '/api/shortdrama/parse?id=' + id + '&episode=' + episode + '&proxy=true&name=' + encodeURIComponent(dramaName),
             withCredentials: true,
-            header: {
-              'Cookie': savedCookie
-            },
             success: (res) => {
               console.log('[Play] shortdrama parse response:', res.statusCode, res.data)
               if (res.statusCode === 200 && res.data && res.data.totalEpisodes) {
@@ -704,16 +700,12 @@ export default {
     
     tryParseShortDramaEpisode(id, episode, dramaName, retryCount) {
       const maxRetries = 3
-      const savedCookie = uni.getStorageSync('user_cookie') || ''
       const apiUrl = '/api/shortdrama/parse?id=' + id + '&episode=' + episode + '&proxy=true&name=' + encodeURIComponent(dramaName)
       console.log('[Play] request url:', apiUrl, 'retry:', retryCount)
       
       uni.request({
         url: apiUrl,
         withCredentials: true,
-        header: {
-          'Cookie': savedCookie
-        },
         success: (res) => {
           console.log('[Play] shortdrama parse response status:', res.statusCode)
           console.log('[Play] shortdrama parse response data:', JSON.stringify(res.data || {}))
