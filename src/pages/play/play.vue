@@ -11,7 +11,7 @@
           show-center-play-btn 
           enable-progress-gesture
           enable-play-gesture
-          :autoplay="true"
+          :autoplay="false"
           @play="onPlay"
           @pause="onPause"
           @error="onVideoError"
@@ -242,23 +242,24 @@ export default {
           episodes_titles: data.episodes_titles || [],
           originalData: data
         }]
-        this.availableSources = [...this.allSources]
-        this.currentEpisodes = data.episodes
-        this.episodeTitles = data.episodes_titles || []
-        this.playEpisode(0)
       }
       
       this.isLoading = false
       
+      // 搜索并测速，测速完成后自动播放最快源
       const searchTitle = data.title || data.name || data.search_title
       if (searchTitle) {
         this.searchAndTestSources(searchTitle)
+      } else if (this.allSources.length > 0) {
+        // 没有搜索关键词时，直接测速现有源
+        this.testAllSources()
       }
     },
     
     searchAndTestSources(keyword) {
       console.log('[Play] searchAndTestSources:', keyword)
       this.loadingMessage = '正在搜索播放源...'
+      this.isSpeedTesting = true
       
       uni.request({
         url: '/api/search?q=' + encodeURIComponent(keyword),
@@ -268,10 +269,15 @@ export default {
           if (res.statusCode === 200 && res.data && res.data.results && res.data.results.length > 0) {
             this.mergeSources(res.data.results)
             this.testAllSources()
+          } else {
+            // 搜索无结果，测速现有源
+            this.testAllSources()
           }
         },
         fail: (err) => {
           console.error('[Play] search more sources failed:', err)
+          // 搜索失败，测速现有源
+          this.testAllSources()
         }
       })
     },
@@ -299,10 +305,15 @@ export default {
     },
     
     async testAllSources() {
-      if (this.allSources.length <= 1) return
+      if (this.allSources.length === 0) {
+        this.errorMessage = '未找到播放源'
+        this.isSpeedTesting = false
+        return
+      }
       
       this.isSpeedTesting = true
       this.speedTestProgress = 0
+      this.loadingMessage = '正在检测播放源速度...'
       
       const results = []
       const total = this.allSources.length
@@ -324,6 +335,7 @@ export default {
         }
       }
       
+      // 按速度排序
       results.sort((a, b) => {
         if (!a.speed) return 1
         if (!b.speed) return -1
@@ -331,24 +343,26 @@ export default {
       })
       
       this.availableSources = results
-      
-      if (results.length > 0 && results[0].source !== this.allSources[this.currentSourceIndex]?.source) {
-        const bestSource = results[0]
-        const bestIndex = this.availableSources.findIndex(s => s.source === bestSource.source)
-        if (bestIndex >= 0) {
-          this.currentSourceIndex = bestIndex
-          this.currentEpisodes = bestSource.episodes
-          this.episodeTitles = bestSource.episodes_titles || []
-          this.playEpisode(0)
-          uni.showToast({ 
-            title: '已切换到最快源: ' + bestSource.source_name, 
-            icon: 'none' 
-          })
-        }
-      }
-      
       this.isSpeedTesting = false
+      
       console.log('[Play] speed test done, available:', results.length)
+      
+      // 测速完成后，使用最快的源播放
+      if (results.length > 0) {
+        const bestSource = results[0]
+        this.currentSourceIndex = 0
+        this.currentEpisodes = bestSource.episodes
+        this.episodeTitles = bestSource.episodes_titles || []
+        
+        uni.showToast({ 
+          title: '已选择最快源: ' + bestSource.source_name + ' (' + bestSource.speed + 'ms)', 
+          icon: 'none'
+        })
+        
+        this.playEpisode(0)
+      } else {
+        this.errorMessage = '所有播放源均不可用'
+      }
     },
     
     testSourceSpeed(source) {
