@@ -12,6 +12,7 @@
           enable-progress-gesture
           enable-play-gesture
           :autoplay="false"
+          direction="0"
           @play="onPlay"
           @pause="onPause"
           @error="onVideoError"
@@ -19,6 +20,7 @@
           @ended="onEnded"
           @waiting="onWaiting"
           @playing="onPlaying"
+          @fullscreenchange="onFullscreenChange"
           x5-video-player-type="h5"
           x5-video-player="true"
         />
@@ -581,6 +583,10 @@ export default {
     onPlay() {
       console.log('[Play] onPlay')
       this.isBuffering = false
+      // 播放开始时保存一次记录
+      if (this.currentTime < 1) {
+        this.savePlayRecord()
+      }
     },
     
     onPause() {
@@ -596,6 +602,18 @@ export default {
     onPlaying() {
       this.isBuffering = false
       this.errorMessage = ''
+    },
+    
+    onFullscreenChange(e) {
+      console.log('[Play] fullscreen change:', e.detail)
+      // 全屏时自动切换横屏
+      if (e.detail.fullScreen) {
+        // 全屏时设置横屏
+        plus.screen.lockOrientation('landscape')
+      } else {
+        // 退出全屏时恢复竖屏
+        plus.screen.lockOrientation('portrait')
+      }
     },
     
     onTimeUpdate(e) {
