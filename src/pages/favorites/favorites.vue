@@ -66,6 +66,11 @@ export default {
               this.list = res.data.list
             } else if (res.data.favorites) {
               this.list = res.data.favorites
+            } else {
+              this.list = Object.entries(res.data).map(([key, value]) => ({
+                ...value,
+                _key: key
+              }))
             }
           }
         },

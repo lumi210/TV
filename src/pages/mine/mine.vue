@@ -176,6 +176,8 @@ export default {
               this.favoriteCount = res.data.list.length
             } else if (res.data.favorites) {
               this.favoriteCount = res.data.favorites.length
+            } else {
+              this.favoriteCount = Object.keys(res.data).length
             }
           }
         }
