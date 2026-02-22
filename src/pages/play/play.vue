@@ -8,7 +8,10 @@
         :poster="poster" 
         controls 
         show-center-play-btn 
-        enable-progress-gesture 
+        enable-progress-gesture
+        enable-play-gesture
+        :autoplay="true"
+        @error="onVideoError"
         @timeupdate="onTimeUpdate" 
         @ended="onEnded" 
       />
@@ -276,8 +279,14 @@ export default {
         if (url.includes('.m3u8') && !url.includes('://')) {
           url = 'https:' + url
         }
+        console.log('[Play] original url:', url)
         this.videoUrl = url
       }
+    },
+    
+    getProxyUrl(url) {
+      if (!url) return ''
+      return url
     },
     
     getEpisodeTitle(index) {
@@ -327,6 +336,16 @@ export default {
           this.playEpisode(this.currentEpisode + 1)
         }, 2000)
       }
+    },
+    
+    onVideoError(e) {
+      console.error('[Play] video error:', e)
+      console.error('[Play] video url:', this.videoUrl)
+      uni.showToast({
+        title: '视频播放失败',
+        icon: 'none',
+        duration: 2000
+      })
     },
     
     savePlayRecord() {
