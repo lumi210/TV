@@ -602,6 +602,7 @@ export default {
       this.currentTime = e.detail.currentTime
       this.duration = e.detail.duration
       
+      // 每隔30秒保存一次播放记录
       if (Math.floor(this.currentTime) % 30 === 0 && Math.floor(this.currentTime) > 0) {
         if (!this.saveTimer) {
           this.savePlayRecord()
@@ -621,6 +622,15 @@ export default {
         setTimeout(() => {
           this.playEpisode(this.currentEpisode)
         }, 1500)
+      }
+    },
+    
+    onPlay() {
+      console.log('[Play] onPlay')
+      this.isBuffering = false
+      // 播放开始时保存一次记录
+      if (this.currentTime < 1) {
+        this.savePlayRecord()
       }
     },
     
@@ -687,7 +697,6 @@ export default {
     
     savePlayRecord() {
       if (!this.id && !this.title) return
-      if (this.currentTime < 5) return
       
       const record = {
         key: (this.currentSource?.source || 'unknown') + '+' + (this.id || Date.now()),
@@ -697,20 +706,22 @@ export default {
           cover: this.poster,
           index: this.currentEpisode + 1,
           total_episodes: this.currentEpisodes.length,
-          play_time: Math.floor(this.currentTime),
-          duration: Math.floor(this.duration),
+          play_time: Math.floor(this.currentTime) || 0,
+          duration: Math.floor(this.duration) || 0,
           save_time: Date.now(),
           url: this.videoUrl
         }
       }
+      
+      console.log('[Play] saving play record:', record.key)
       
       uni.request({
         url: '/api/playrecords',
         method: 'POST',
         data: record,
         withCredentials: true,
-        success: () => {
-          console.log('[Play] play record saved')
+        success: (res) => {
+          console.log('[Play] play record saved:', res.statusCode)
         },
         fail: (err) => {
           console.error('[Play] save play record failed:', err)
