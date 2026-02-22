@@ -647,22 +647,16 @@ export default {
         url: '/api/shortdrama/parse?id=' + id + '&episode=' + episode + '&proxy=true&name=' + encodeURIComponent(this.title || ''),
         withCredentials: true,
         success: (res) => {
-          console.log('[Play] shortdrama parse response:', res.statusCode, JSON.stringify(res.data).substring(0, 500))
+          console.log('[Play] shortdrama parse response:', res.statusCode, JSON.stringify(res.data || {}).substring(0, 500))
           
           if (res.statusCode === 200 && res.data) {
-            if (res.data.error) {
-              this.isBuffering = false
-              this.isLoading = false
-              this.errorMessage = res.data.error
-              return
-            }
-            
             const playUrl = res.data.url || res.data.proxyUrl
             if (playUrl) {
               this.videoUrl = playUrl
               this.errorMessage = ''
               this.retryCount = 0
               this.isBuffering = false
+              this.isLoading = false
               console.log('[Play] got playUrl:', playUrl)
             } else {
               this.isBuffering = false
@@ -670,9 +664,11 @@ export default {
               this.errorMessage = '未获取到播放地址'
             }
           } else {
+            const errorMsg = res.data?.error || '获取播放地址失败(HTTP ' + res.statusCode + ')'
+            console.error('[Play] parse failed:', errorMsg)
             this.isBuffering = false
             this.isLoading = false
-            this.errorMessage = '获取播放地址失败'
+            this.errorMessage = errorMsg
           }
         },
         fail: (err) => {
