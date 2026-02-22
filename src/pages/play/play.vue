@@ -258,6 +258,7 @@ export default {
       console.log('[Play] initWithData:', data)
       this.id = data.id || data.vod_id || ''
       this.type = data.type || 'movie'
+      this.title = this.title || data.title || data.name || data.search_title || ''
       this.poster = this.proxyImage(data.poster || data.pic || data.cover || '')
       
       this.info = {
@@ -278,6 +279,15 @@ export default {
       }
       
       this.isLoading = false
+      
+      // 短剧类型不需要搜索其他源，直接播放
+      if (this.type === 'shortdrama' && this.allSources.length > 0) {
+        this.availableSources = this.allSources
+        this.currentEpisodes = this.allSources[0].episodes
+        this.episodeTitles = this.allSources[0].episodes_titles || []
+        this.playEpisode(0)
+        return
+      }
       
       // 搜索并测速，测速完成后自动播放最快源
       const searchTitle = data.title || data.name || data.search_title
@@ -638,27 +648,31 @@ export default {
         withCredentials: true,
         success: (res) => {
           console.log('[Play] shortdrama parse response:', res.statusCode, JSON.stringify(res.data).substring(0, 500))
+          
           if (res.statusCode === 200 && res.data) {
-            let playUrl = null
-            
-            if (res.data.code === 0 && res.data.data) {
-              playUrl = res.data.data.parsedUrl || res.data.data.proxyUrl || res.data.data.episode?.parsedUrl
+            if (res.data.error) {
+              this.isBuffering = false
+              this.isLoading = false
+              this.errorMessage = res.data.error
+              return
             }
             
+            const playUrl = res.data.url || res.data.proxyUrl
             if (playUrl) {
               this.videoUrl = playUrl
               this.errorMessage = ''
               this.retryCount = 0
+              this.isBuffering = false
               console.log('[Play] got playUrl:', playUrl)
             } else {
               this.isBuffering = false
               this.isLoading = false
-              this.errorMessage = res.data?.msg || '未获取到播放地址'
+              this.errorMessage = '未获取到播放地址'
             }
           } else {
             this.isBuffering = false
             this.isLoading = false
-            this.errorMessage = res.data?.error || res.data?.msg || '获取播放地址失败'
+            this.errorMessage = '获取播放地址失败'
           }
         },
         fail: (err) => {
