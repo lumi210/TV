@@ -515,10 +515,17 @@ export default {
         })
       } else {
         const favorite = {
+          videoId: this.id,
           title: this.title,
+          source: this.currentSource?.source,
           source_name: this.currentSource?.source_name || '未知源',
           cover: this.poster,
+          pic: this.poster,
           type: this.type || 'movie',
+          year: this.info?.year,
+          rate: this.info?.rate,
+          episodes: this.currentEpisodes,
+          episodes_titles: this.episodeTitles,
           save_time: Date.now()
         }
         uni.request({
