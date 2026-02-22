@@ -1,5 +1,14 @@
 <template>
   <view class="page">
+    <!-- Custom Navigation Bar -->
+    <view class="custom-navbar">
+      <text class="navbar-title">LunaTV</text>
+      <view class="navbar-search" @click="goSearch">
+        <text class="search-icon">&#128269;</text>
+        <text class="search-placeholder">搜索影片...</text>
+      </view>
+    </view>
+    
     <!-- Hero Banner -->
     <view class="hero-banner" v-if="bannerItems.length > 0" @touchstart="onTouchStart" @touchend="onTouchEnd">
       <swiper 
@@ -548,11 +557,54 @@ export default {
 @import '../../styles/common.scss';
 
 .page {
-  height: 100vh;
+  min-height: 100vh;
   background: $color-bg;
+  padding-top: 88rpx;
+}
+
+/* Custom Navigation Bar */
+.custom-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 88rpx;
+  background: $color-bg-secondary;
   display: flex;
-  flex-direction: column;
-  position: relative;
+  align-items: center;
+  padding: 0 24rpx;
+  padding-top: constant(safe-area-inset-top);
+  padding-top: env(safe-area-inset-top);
+  z-index: 100;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.3);
+}
+
+.navbar-title {
+  color: $color-primary;
+  font-size: 36rpx;
+  font-weight: bold;
+  margin-right: 24rpx;
+}
+
+.navbar-search {
+  flex: 1;
+  height: 60rpx;
+  background: $color-bg;
+  border-radius: 30rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 24rpx;
+}
+
+.search-icon {
+  color: $color-text-muted;
+  font-size: 28rpx;
+  margin-right: 12rpx;
+}
+
+.search-placeholder {
+  color: $color-text-muted;
+  font-size: 26rpx;
 }
 
 /* Hero Banner */

@@ -259,6 +259,7 @@ export default {
     searchAndTestSources(keyword) {
       console.log('[Play] searchAndTestSources:', keyword)
       this.loadingMessage = '正在搜索播放源...'
+      this.isLoading = true
       this.isSpeedTesting = true
       
       uni.request({
@@ -307,11 +308,13 @@ export default {
     async testAllSources() {
       if (this.allSources.length === 0) {
         this.errorMessage = '未找到播放源'
+        this.isLoading = false
         this.isSpeedTesting = false
         return
       }
       
       this.isSpeedTesting = true
+      this.isLoading = true
       this.speedTestProgress = 0
       this.loadingMessage = '正在检测播放源速度...'
       
@@ -341,8 +344,9 @@ export default {
         if (!b.speed) return -1
         return a.speed - b.speed
       })
-      
+       
       this.isSpeedTesting = false
+      this.isLoading = false
       console.log('[Play] speed test done, available:', results.length)
       
       // 如果测速全部失败，使用原始源列表
@@ -384,6 +388,7 @@ export default {
           }, 500)
         })
       } else {
+        this.isLoading = false
         this.errorMessage = '所有播放源均不可用'
       }
     },
