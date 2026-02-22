@@ -201,19 +201,34 @@ export default {
     },
     
     searchAndLoad(keyword) {
+      console.log('[Play] searchAndLoad:', keyword)
       uni.request({
         url: '/api/search?q=' + encodeURIComponent(keyword),
         withCredentials: true,
         success: (res) => {
+          console.log('[Play] search response:', res.statusCode, res.data)
           if (res.statusCode === 200 && res.data && res.data.results && res.data.results.length > 0) {
             this.processSearchResults(res.data.results)
+          } else {
+            this.loading = false
+            uni.showToast({ title: '未找到播放源', icon: 'none' })
           }
+        },
+        fail: (err) => {
+          console.error('[Play] search failed:', err)
+          this.loading = false
+          uni.showToast({ title: '搜索失败', icon: 'none' })
         }
       })
     },
     
     processSearchResults(results) {
-      if (results.length === 0) return
+      console.log('[Play] search results:', results)
+      if (!results || results.length === 0) {
+        this.loading = false
+        uni.showToast({ title: '未找到播放源', icon: 'none' })
+        return
+      }
       
       const first = results[0]
       this.id = first.id || first.vod_id || ''
@@ -244,12 +259,15 @@ export default {
       })
       
       this.allSources = Array.from(sourcesMap.values())
+      console.log('[Play] allSources:', this.allSources.length, this.allSources)
       
       if (this.allSources.length > 0) {
         this.currentSourceIndex = 0
         this.currentEpisodes = this.allSources[0].episodes
         this.episodeTitles = this.allSources[0].episodes_titles || []
         this.playEpisode(0)
+      } else {
+        uni.showToast({ title: '未找到可播放源', icon: 'none' })
       }
       
       this.otherResults = results.filter(item => {
