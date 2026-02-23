@@ -170,6 +170,7 @@ export default {
       title: '',
       videoUrl: '',
       poster: '',
+      originalPoster: '',
       isLoading: true,
       loadingMessage: '正在加载...',
       errorMessage: '',
@@ -358,7 +359,8 @@ export default {
       this.id = data.id || data.vod_id || ''
       this.type = data.type || 'movie'
       this.title = this.title || data.title || data.name || data.search_title || ''
-      this.poster = this.proxyImage(data.poster || data.pic || data.cover || '')
+      this.originalPoster = data.poster || data.pic || data.cover || ''
+      this.poster = this.proxyImage(this.originalPoster)
       
       this.info = {
         year: data.year,
@@ -381,7 +383,7 @@ export default {
       
       // 短剧类型不需要搜索其他源，直接播放
       if (this.type === 'shortdrama' && this.allSources.length > 0) {
-        this.availableSources = this.allSources
+        this.availableSources = [...this.allSources]
         this.currentEpisodes = this.allSources[0].episodes
         this.episodeTitles = this.allSources[0].episodes_titles || []
         this.playEpisode(0)
@@ -626,7 +628,8 @@ export default {
       const first = results[0]
       this.id = first.id || first.vod_id || ''
       this.title = first.title || this.title
-      this.poster = this.proxyImage(first.poster || first.pic || first.cover || '')
+      this.originalPoster = first.poster || first.pic || first.cover || ''
+      this.poster = this.proxyImage(this.originalPoster)
       this.info = {
         year: first.year,
         type_name: first.type_name,
@@ -658,7 +661,7 @@ export default {
         await this.testAllSources()
         
         if (this.availableSources.length === 0) {
-          this.availableSources = [this.allSources[0]]
+          this.availableSources = [...this.allSources]
           this.currentEpisodes = this.allSources[0].episodes
           this.episodeTitles = this.allSources[0].episodes_titles || []
           this.playEpisode(0)
@@ -1060,7 +1063,7 @@ export default {
         const favorite = {
           title: this.title,
           source_name: this.currentSource?.source_name || '未知源',
-          cover: this.poster,
+          cover: this.originalPoster,
           year: this.info?.year || '',
           total_episodes: this.currentEpisodes.length,
           save_time: Date.now(),
