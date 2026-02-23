@@ -51,6 +51,7 @@
           :enable-play-gesture="true"
           :page-gesture="false"
           :http-cache="true"
+          object-fit="contain"
           @play="onPlay"
           @pause="onPause"
           @error="onVideoError"
@@ -1345,20 +1346,40 @@ export default {
 .video-wrap {
   width: 100%;
   height: 422rpx;
+  max-height: 422rpx;
   background: #000;
   position: relative;
   flex-shrink: 0;
+  overflow: hidden;
 }
 
 .video-container {
   width: 100%;
-  height: 100%;
+  height: 422rpx;
+  max-height: 422rpx;
   position: relative;
+  overflow: hidden;
 }
 
 .video {
   width: 100%;
-  height: 100%;
+  height: 422rpx;
+  max-height: 422rpx;
+  object-fit: contain;
+}
+
+.video-container {
+  width: 100%;
+  height: 422rpx;
+  max-height: 422rpx;
+  position: relative;
+  overflow: hidden;
+}
+
+.video {
+  width: 100%;
+  height: 422rpx;
+  max-height: 422rpx;
   object-fit: contain;
 }
 
