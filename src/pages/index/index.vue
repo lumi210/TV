@@ -382,6 +382,9 @@ export default {
     
     proxyImage(url) {
       if (!url || url.startsWith('data:')) return url
+      
+      // #ifdef H5
+      // H5 端使用代理避免跨域
       if (url.includes('doubanio.com') || url.includes('img9.doubanio.com') || url.includes('img2.doubanio.com') || url.includes('img1.doubanio.com') || url.includes('img3.doubanio.com') || url.includes('img4.doubanio.com') || url.includes('img5.doubanio.com') || url.includes('img6.doubanio.com') || url.includes('img7.doubanio.com')) {
         return getApiUrl('/api/image-proxy?url=' + encodeURIComponent(url))
       }
@@ -390,6 +393,12 @@ export default {
           return getApiUrl('/api/image-proxy?url=' + encodeURIComponent(url))
         }
       }
+      // #endif
+      
+      // #ifndef H5
+      // APP 端直接使用原始 URL
+      // #endif
+      
       return url
     },
     
