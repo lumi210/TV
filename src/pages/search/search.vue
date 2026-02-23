@@ -230,9 +230,33 @@ export default {
     },
     
     goDetail(item) {
+      if (!this.checkLogin()) {
+        return
+      }
       uni.navigateTo({
         url: '/pages/play/play?title=' + encodeURIComponent(item.title) + '&data=' + encodeURIComponent(JSON.stringify(item))
       })
+    },
+    
+    checkLogin() {
+      const userInfo = uni.getStorageSync('userInfo')
+      const userCookie = uni.getStorageSync('user_cookie')
+      if (!userInfo || !userCookie) {
+        uni.showModal({
+          title: '提示',
+          content: '请登录账号后观看影片',
+          showCancel: true,
+          confirmText: '去登录',
+          cancelText: '取消',
+          success: (res) => {
+            if (res.confirm) {
+              uni.navigateTo({ url: '/pages/login/login' })
+            }
+          }
+        })
+        return false
+      }
+      return true
     }
   }
 }

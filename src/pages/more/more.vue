@@ -193,6 +193,9 @@ export default {
     },
     
     searchAndPlay(item) {
+      if (!this.checkLogin()) {
+        return
+      }
       uni.showLoading({ title: '搜索中...' })
       uni.request({
         url: buildUrl('/api/search?q=') + encodeURIComponent(item.title || item.name),
@@ -213,6 +216,27 @@ export default {
           uni.showToast({ title: '搜索失败', icon: 'none' })
         }
       })
+    },
+    
+    checkLogin() {
+      const userInfo = uni.getStorageSync('userInfo')
+      const userCookie = uni.getStorageSync('user_cookie')
+      if (!userInfo || !userCookie) {
+        uni.showModal({
+          title: '提示',
+          content: '请登录账号后观看影片',
+          showCancel: true,
+          confirmText: '去登录',
+          cancelText: '取消',
+          success: (res) => {
+            if (res.confirm) {
+              uni.navigateTo({ url: '/pages/login/login' })
+            }
+          }
+        })
+        return false
+      }
+      return true
     }
   }
 }
