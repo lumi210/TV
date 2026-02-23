@@ -1446,8 +1446,7 @@ export default {
 }
 
 .content {
-  flex: 1;
-  min-height: 0;
+  height: calc(100vh - 88rpx - 422rpx);
   overflow-y: auto;
 }
 
