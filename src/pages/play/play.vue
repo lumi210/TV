@@ -720,8 +720,12 @@ export default {
       this.retryCount = 0
       this.errorMessage = ''
       this.isLoading = false
+      this.currentTime = 0
+      this.duration = 0
       
       this.checkFavorite()
+      
+      this.savePlayRecord()
     },
     
     playShortDramaEpisode(episodeUrl) {
@@ -777,7 +781,10 @@ export default {
               this.retryCount = 0
               this.isBuffering = false
               this.isLoading = false
+              this.currentTime = 0
+              this.duration = 0
               console.log('[Play] got playUrl:', playUrl)
+              this.savePlayRecord()
               return
             }
           }
@@ -887,15 +894,6 @@ export default {
       }
     },
     
-    onPlay() {
-      console.log('[Play] onPlay')
-      this.isBuffering = false
-      // 播放开始时保存一次记录
-      if (this.currentTime < 1) {
-        this.savePlayRecord()
-      }
-    },
-    
     onVideoError(e) {
       console.error('[Play] video error:', e)
       console.error('[Play] video url:', this.videoUrl)
@@ -975,12 +973,21 @@ export default {
     },
     
     savePlayRecord() {
-      if (!this.id && !this.title) return
+      if (!this.id && !this.title) {
+        console.warn('[Play] savePlayRecord skipped: no id and no title')
+        return
+      }
+      
+      const sourceKey = this.currentSource?.source || 'unknown'
+      const videoId = this.id || 'video_' + Date.now()
+      const recordKey = sourceKey + '+' + videoId
       
       const record = {
-        key: (this.currentSource?.source || 'unknown') + '+' + (this.id || Date.now()),
+        key: recordKey,
         record: {
+          id: videoId,
           title: this.title,
+          source: sourceKey,
           source_name: this.currentSource?.source_name || '未知源',
           cover: this.poster,
           index: this.currentEpisode + 1,
@@ -992,7 +999,7 @@ export default {
         }
       }
       
-      console.log('[Play] saving play record:', record.key)
+      console.log('[Play] saving play record:', recordKey, 'title:', this.title)
       
       uni.request({
         url: '/api/playrecords',
@@ -1000,7 +1007,7 @@ export default {
         data: record,
         withCredentials: true,
         success: (res) => {
-          console.log('[Play] play record saved:', res.statusCode)
+          console.log('[Play] play record saved:', res.statusCode, res.data)
         },
         fail: (err) => {
           console.error('[Play] save play record failed:', err)
