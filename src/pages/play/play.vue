@@ -256,11 +256,12 @@ export default {
       }
     } else if (options.id && options.type === 'shortdrama') {
       this.loadShortDramaDetail(options.id, options.title)
-    }
-    
-    if (options.q) {
+    } else if (options.q) {
       this.searchKeyword = decodeURIComponent(options.q)
       this.searchAndLoad(this.searchKeyword)
+    } else {
+      this.errorMessage = '缺少播放参数'
+      this.isLoading = false
     }
   },
   onShow() {
@@ -450,14 +451,37 @@ export default {
       this.isLoading = true
       this.isSpeedTesting = true
       
+      const userCookie = uni.getStorageSync('user_cookie') || ''
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      if (userCookie) {
+        headers['Cookie'] = userCookie
+      }
+      
       uni.request({
         url: buildUrl('/api/search?q=' + encodeURIComponent(keyword)),
         withCredentials: true,
+        header: headers,
         success: (res) => {
           console.log('[Play] more sources response:', res.statusCode, res.data?.results?.length)
           if (res.statusCode === 200 && res.data && res.data.results && res.data.results.length > 0) {
             this.mergeSources(res.data.results)
             this.testAllSources()
+          } else if (res.statusCode === 401) {
+            this.errorMessage = '登录已过期，请重新登录'
+            this.isLoading = false
+            uni.showModal({
+              title: '提示',
+              content: '登录已过期，请重新登录',
+              showCancel: false,
+              confirmText: '去登录',
+              success: () => {
+                uni.removeStorageSync('userInfo')
+                uni.removeStorageSync('user_cookie')
+                uni.navigateTo({ url: '/pages/login/login' })
+              }
+            })
           } else {
             // 搜索无结果，测速现有源
             this.testAllSources()

@@ -199,9 +199,18 @@ export default {
       
       this.saveSearchHistory(trimmed)
       
+      const userCookie = uni.getStorageSync('user_cookie') || ''
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      if (userCookie) {
+        headers['Cookie'] = userCookie
+      }
+      
       uni.request({
         url: buildUrl('/api/search?q=') + encodeURIComponent(trimmed),
         withCredentials: true,
+        header: headers,
         success: (res) => {
           if (res.statusCode === 200 && res.data && res.data.results) {
             this.results = res.data.results

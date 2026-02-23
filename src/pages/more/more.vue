@@ -196,10 +196,20 @@ export default {
       if (!this.checkLogin()) {
         return
       }
+      
+      const userCookie = uni.getStorageSync('user_cookie') || ''
+      const headers = {
+        'Content-Type': 'application/json'
+      }
+      if (userCookie) {
+        headers['Cookie'] = userCookie
+      }
+      
       uni.showLoading({ title: '搜索中...' })
       uni.request({
         url: buildUrl('/api/search?q=') + encodeURIComponent(item.title || item.name),
         withCredentials: true,
+        header: headers,
         success: (res) => {
           uni.hideLoading()
           if (res.data && res.data.results && res.data.results.length > 0) {
