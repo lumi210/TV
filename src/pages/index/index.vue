@@ -317,6 +317,9 @@
 </template>
 
 <script>
+import request from '../../utils/request'
+import { getApiUrl } from '../../utils/config'
+
 export default {
   data() {
     return {
@@ -345,7 +348,7 @@ export default {
   methods: {
     loadSiteConfig() {
       uni.request({
-        url: '/api/server-config',
+        url: getApiUrl('/api/server-config'),
         withCredentials: true,
         success: (res) => {
           if (res.statusCode === 200 && res.data && res.data.SiteName) {
@@ -473,7 +476,7 @@ export default {
     loadMovies() {
       return new Promise((resolve) => {
         uni.request({
-          url: '/api/douban?type=movie&tag=%E7%83%AD%E9%97%A8&pageStart=0&pageSize=12',
+          url: getApiUrl('/api/douban?type=movie&tag=%E7%83%AD%E9%97%A8&pageStart=0&pageSize=12'),
           withCredentials: true,
           success: (res) => {
             if (res.statusCode === 200 && res.data && res.data.list) {
@@ -500,7 +503,7 @@ export default {
     loadTvShows() {
       return new Promise((resolve) => {
         uni.request({
-          url: '/api/douban?type=tv&tag=%E7%83%AD%E9%97%A8&pageStart=0&pageSize=12',
+          url: getApiUrl('/api/douban?type=tv&tag=%E7%83%AD%E9%97%A8&pageStart=0&pageSize=12'),
           withCredentials: true,
           success: (res) => {
             if (res.statusCode === 200 && res.data && res.data.list) {
@@ -527,7 +530,7 @@ export default {
     loadVariety() {
       return new Promise((resolve) => {
         uni.request({
-          url: '/api/douban?type=tv&tag=%E7%BB%BC%E8%89%BA&pageStart=0&pageSize=12',
+          url: getApiUrl('/api/douban?type=tv&tag=%E7%BB%BC%E8%89%BA&pageStart=0&pageSize=12'),
           withCredentials: true,
           success: (res) => {
             if (res.statusCode === 200 && res.data && res.data.list) {
@@ -554,7 +557,7 @@ export default {
     loadBangumiCalendar() {
       return new Promise((resolve) => {
         uni.request({
-          url: '/api/proxy/bangumi?path=calendar',
+          url: getApiUrl('/api/proxy/bangumi?path=calendar'),
           withCredentials: true,
           success: (res) => {
             console.log('[Index] bangumi calendar response:', res.statusCode, res.data?.length)
@@ -599,7 +602,7 @@ export default {
     loadShortDramas() {
       return new Promise((resolve) => {
         uni.request({
-          url: '/api/shortdrama/list?categoryId=1&page=1&size=12',
+          url: getApiUrl('/api/shortdrama/list?categoryId=1&page=1&size=12'),
           withCredentials: true,
           success: (res) => {
             if (res.statusCode === 200 && res.data) {

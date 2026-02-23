@@ -86,6 +86,7 @@
 </template>
 
 <script>
+import { buildUrl } from "../../utils/request"
 import Hls from 'hls.js'
 
 export default {
@@ -119,7 +120,7 @@ export default {
       this.sources = []
       this.channels = []
       uni.request({
-        url: '/api/live/sources',
+        url: buildUrl('/api/live/sources'),
         withCredentials: true,
         success: (res) => {
           console.log('[Live] sources response:', JSON.stringify(res.data, null, 2))
@@ -163,7 +164,7 @@ export default {
       this.channels = []
       console.log('[Live] requesting channels for sourceKey:', sourceKey)
       uni.request({
-        url: '/api/live/channels?source=' + encodeURIComponent(sourceKey),
+        url: buildUrl('/api/live/channels?source=') + encodeURIComponent(sourceKey),
         withCredentials: true,
         success: (res) => {
           console.log('[Live] channels response status:', res.statusCode)

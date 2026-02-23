@@ -39,6 +39,7 @@
 </template>
 
 <script>
+import { buildUrl } from "../../utils/request"
 export default {
   data() {
     return {
@@ -56,7 +57,7 @@ export default {
     loadData() {
       this.loading = true
       uni.request({
-        url: '/api/favorites',
+        url: buildUrl('/api/favorites'),
         withCredentials: true,
         success: (res) => {
           if (res.data) {
@@ -94,7 +95,7 @@ export default {
               return
             }
             uni.request({
-              url: '/api/favorites?key=' + encodeURIComponent(key),
+              url: buildUrl('/api/favorites?key=') + encodeURIComponent(key),
               method: 'DELETE',
               withCredentials: true,
               success: (res) => {
@@ -127,7 +128,7 @@ export default {
         // 否则先搜索
         uni.showLoading({ title: '搜索中...' })
         uni.request({
-          url: '/api/search?q=' + encodeURIComponent(title),
+          url: buildUrl('/api/search?q=') + encodeURIComponent(title),
           withCredentials: true,
           success: (res) => {
             uni.hideLoading()

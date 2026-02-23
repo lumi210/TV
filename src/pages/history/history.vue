@@ -51,6 +51,7 @@
 </template>
 
 <script>
+import { buildUrl } from "../../utils/request"
 export default {
   data() {
     return {
@@ -69,7 +70,7 @@ export default {
     loadData() {
       this.loading = true
       uni.request({
-        url: '/api/playrecords',
+        url: buildUrl('/api/playrecords'),
         withCredentials: true,
         success: (res) => {
           if (res.statusCode === 200 && res.data) {
@@ -151,7 +152,7 @@ export default {
         success: (res) => {
           if (res.confirm) {
             uni.request({
-              url: '/api/playrecords',
+              url: buildUrl('/api/playrecords'),
               method: 'DELETE',
               withCredentials: true,
               success: () => {
@@ -176,7 +177,7 @@ export default {
             const key = item.key || item.id || item._id
             if (key) {
               uni.request({
-                url: '/api/playrecords?key=' + encodeURIComponent(key),
+                url: buildUrl('/api/playrecords?key=') + encodeURIComponent(key),
                 method: 'DELETE',
                 withCredentials: true,
                 success: () => {

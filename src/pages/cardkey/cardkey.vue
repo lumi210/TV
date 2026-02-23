@@ -35,6 +35,7 @@
   </view>
 </template>
 <script>
+import { buildUrl } from "../../utils/request"
 export default {
   data() { 
     return { 
@@ -50,7 +51,7 @@ export default {
     goBack() { uni.navigateBack() },
     loadCardKeyInfo() {
       uni.request({
-        url: '/api/user/cardkey',
+        url: buildUrl('/api/user/cardkey'),
         withCredentials: true,
         success: (res) => {
           if (res.data && res.data.hasCardKey && res.data.cardKeyInfo) {
@@ -68,7 +69,7 @@ export default {
       this.loading = true
       
       uni.request({
-        url: '/api/user/cardkey',
+        url: buildUrl('/api/user/cardkey'),
         method: 'POST',
         data: { cardKey: this.cardKey },
         withCredentials: true,

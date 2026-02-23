@@ -77,6 +77,7 @@
 </template>
 
 <script>
+import { buildUrl } from "../../utils/request"
 export default {
   data() {
     return {
@@ -143,7 +144,7 @@ export default {
 
       this.redeeming = true
       uni.request({
-        url: '/api/redeem/cardkey',
+        url: buildUrl('/api/redeem/cardkey'),
         method: 'POST',
         withCredentials: true,
         success: (res) => {

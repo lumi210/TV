@@ -55,6 +55,7 @@
 </template>
 
 <script>
+import { buildUrl } from "../../utils/request"
 export default {
   data() {
     return {
@@ -185,7 +186,7 @@ export default {
     searchAndPlay(item) {
       uni.showLoading({ title: '搜索中...' })
       uni.request({
-        url: '/api/search?q=' + encodeURIComponent(item.title || item.name),
+        url: buildUrl('/api/search?q=') + encodeURIComponent(item.title || item.name),
         withCredentials: true,
         success: (res) => {
           uni.hideLoading()

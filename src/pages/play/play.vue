@@ -160,6 +160,8 @@
 </template>
 
 <script>
+import { buildUrl } from '../../utils/request'
+
 export default {
   data() {
     return {
@@ -274,7 +276,7 @@ export default {
     fetchShortDramaFromMainApi(id, dramaName) {
       return new Promise((resolve) => {
         uni.request({
-          url: '/api/shortdrama/detail?id=' + id,
+          url: buildUrl('/api/shortdrama/detail?id=' + id),
           withCredentials: true,
           success: (res) => {
             console.log('[Play] detail api response:', res.statusCode, JSON.stringify(res.data || {}).substring(0, 500))
@@ -301,7 +303,7 @@ export default {
     
     fetchShortDramaFromRemoteApi(id, dramaName) {
       return new Promise((resolve) => {
-        const apiUrl = '/shortdrama-api?ac=videolist&ids=' + id
+        const apiUrl = buildUrl('/shortdrama-api?ac=videolist&ids=' + id)
         console.log('[Play] fetching from remote api:', apiUrl)
         
         uni.request({
@@ -403,7 +405,7 @@ export default {
       this.isSpeedTesting = true
       
       uni.request({
-        url: '/api/search?q=' + encodeURIComponent(keyword),
+        url: buildUrl('/api/search?q=' + encodeURIComponent(keyword)),
         withCredentials: true,
         success: (res) => {
           console.log('[Play] more sources response:', res.statusCode, res.data?.results?.length)
@@ -595,7 +597,7 @@ export default {
       this.isLoading = true
       
       uni.request({
-        url: '/api/search?q=' + encodeURIComponent(keyword),
+        url: buildUrl('/api/search?q=' + encodeURIComponent(keyword)),
         withCredentials: true,
         success: (res) => {
           console.log('[Play] search response:', res.statusCode, res.data)
@@ -756,7 +758,7 @@ export default {
     
     tryParseShortDramaEpisode(id, episode, dramaName, retryCount) {
       const maxRetries = 3
-      const apiUrl = '/api/shortdrama/parse?id=' + id + '&episode=' + episode + '&proxy=true&name=' + encodeURIComponent(dramaName)
+      const apiUrl = buildUrl('/api/shortdrama/parse?id=' + id + '&episode=' + episode + '&proxy=true&name=' + encodeURIComponent(dramaName))
       console.log('[Play] request url:', apiUrl, 'retry:', retryCount)
       
       uni.request({
@@ -1001,7 +1003,7 @@ export default {
       console.log('[Play] saving play record:', recordKey, 'title:', this.title, 'index:', record.record.index)
       
       uni.request({
-        url: '/api/playrecords',
+        url: buildUrl('/api/playrecords'),
         method: 'POST',
         data: record,
         withCredentials: true,
@@ -1019,7 +1021,7 @@ export default {
       const source = this.currentSource?.source || 'unknown'
       const key = source + '+' + this.id
       uni.request({
-        url: '/api/favorites?key=' + encodeURIComponent(key),
+        url: buildUrl('/api/favorites?key=' + encodeURIComponent(key)),
         withCredentials: true,
         success: (res) => {
           this.isFavorited = res.statusCode === 200 && res.data
@@ -1036,7 +1038,7 @@ export default {
       
       if (this.isFavorited) {
         uni.request({
-          url: '/api/favorites?key=' + encodeURIComponent(key),
+          url: buildUrl('/api/favorites?key=' + encodeURIComponent(key)),
           method: 'DELETE',
           withCredentials: true,
           success: (res) => {
@@ -1063,7 +1065,7 @@ export default {
           type: this.type || 'movie'
         }
         uni.request({
-          url: '/api/favorites',
+          url: buildUrl('/api/favorites'),
           method: 'POST',
           data: { key, favorite },
           withCredentials: true,

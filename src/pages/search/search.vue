@@ -105,6 +105,7 @@
 </template>
 
 <script>
+import { buildUrl } from "../../utils/request"
 export default {
   data() {
     return {
@@ -190,7 +191,7 @@ export default {
       this.saveSearchHistory(trimmed)
       
       uni.request({
-        url: '/api/search?q=' + encodeURIComponent(trimmed),
+        url: buildUrl('/api/search?q=') + encodeURIComponent(trimmed),
         withCredentials: true,
         success: (res) => {
           if (res.statusCode === 200 && res.data && res.data.results) {

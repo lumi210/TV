@@ -30,6 +30,7 @@
 </template>
 
 <script>
+import { buildUrl } from "../../utils/request"
 export default {
   data() {
     return {
@@ -49,7 +50,7 @@ export default {
       this.loading = true
       
       uni.request({
-        url: '/api/shortdrama/list?categoryId=1&page=' + this.page + '&size=20',
+        url: buildUrl('/api/shortdrama/list?categoryId=1&page=') + this.page + '&size=20',
         withCredentials: true,
         success: (res) => {
           console.log('[ShortDrama] response:', res.statusCode, JSON.stringify(res.data).substring(0, 500))

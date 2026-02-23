@@ -1,5 +1,18 @@
 import { config, getServerUrl, getApiUrl } from './config'
 
+export const buildUrl = (url) => {
+  if (url.startsWith('http')) {
+    return url
+  }
+  // #ifdef H5
+  return url
+  // #endif
+  
+  // #ifndef H5
+  return getApiUrl(url)
+  // #endif
+}
+
 class Request {
   constructor() {
     this.baseUrl = ''

@@ -32,6 +32,7 @@
   </view>
 </template>
 <script>
+import { buildUrl } from "../../utils/request"
 export default {
   data() { return { inviteCode: '', records: [] } },
   onShow() { this.loadData() },
@@ -39,7 +40,7 @@ export default {
     goBack() { uni.navigateBack() },
     loadData() {
       uni.request({
-        url: '/api/invitation/info',
+        url: buildUrl('/api/invitation/info'),
         withCredentials: true,
         success: (res) => {
           if (res.data && !res.data.error) {
