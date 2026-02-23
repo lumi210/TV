@@ -1436,7 +1436,7 @@ export default {
 
 .content {
   flex: 1;
-  height: 0;
+  min-height: 300rpx;
 }
 
 .info {
