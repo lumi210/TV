@@ -964,8 +964,7 @@ export default {
     proxyImage(url) {
       if (!url || url.startsWith('data:')) return url
       
-      // #ifdef H5
-      // H5 端使用代理避免跨域
+      // 使用图片代理
       if (url.includes('doubanio.com')) {
         return buildUrl('/api/image-proxy?url=' + encodeURIComponent(url))
       }
@@ -974,11 +973,6 @@ export default {
           return buildUrl('/api/image-proxy?url=' + encodeURIComponent(url))
         }
       }
-      // #endif
-      
-      // #ifndef H5
-      // APP 端直接使用原始 URL
-      // #endif
       
       return url
     },
