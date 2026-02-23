@@ -10,7 +10,9 @@
     
     <view class="video-wrap">
       <view v-if="videoUrl" class="video-container">
+        <!-- #ifdef H5 -->
         <video 
+          ref="videoPlayer"
           id="video-player"
           class="video" 
           :src="videoUrl"
@@ -32,6 +34,33 @@
           x5-video-player-type="h5"
           x5-video-player="true"
         />
+        <!-- #endif -->
+        
+        <!-- #ifndef H5 -->
+        <video 
+          id="video-player"
+          class="video" 
+          :src="videoUrl"
+          :poster="poster" 
+          controls 
+          show-center-play-btn 
+          enable-progress-gesture
+          enable-play-gesture
+          :autoplay="true"
+          direction="0"
+          :enable-play-gesture="true"
+          :page-gesture="false"
+          :http-cache="true"
+          @play="onPlay"
+          @pause="onPause"
+          @error="onVideoError"
+          @timeupdate="onTimeUpdate" 
+          @ended="onEnded"
+          @waiting="onWaiting"
+          @playing="onPlaying"
+          @fullscreenchange="onFullscreenChange"
+        />
+        <!-- #endif -->
         <view v-if="isBuffering" class="loading-overlay">
           <view class="loading-spinner"></view>
           <text class="loading-text">{{ loadingText }}</text>
@@ -499,6 +528,7 @@ export default {
        
       this.isSpeedTesting = false
       console.log('[Play] speed test done, available:', results.length, 'total:', this.allSources.length)
+      console.log('[Play] after speed test - title:', this.title, 'info:', this.info, 'poster:', this.poster)
       
       if (results.length > 0) {
         this.availableSources = results
@@ -506,11 +536,15 @@ export default {
         this.availableSources = [...this.allSources]
       }
       
+      console.log('[Play] availableSources:', this.availableSources.length)
+      
       if (this.availableSources.length > 0) {
         const bestSource = this.availableSources[0]
         this.currentSourceIndex = 0
         this.currentEpisodes = bestSource.episodes
         this.episodeTitles = bestSource.episodes_titles || []
+        
+        console.log('[Play] bestSource:', bestSource.source_name, 'episodes:', this.currentEpisodes.length)
         
         if (bestSource.speed) {
           uni.showToast({ 
@@ -1330,6 +1364,8 @@ export default {
 
 .content {
   flex: 1;
+  height: 0;
+  overflow: hidden;
 }
 
 .info {
