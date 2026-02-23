@@ -295,7 +295,6 @@
       <view class="error-state" v-if="!loading && loadError">
         <text class="error-icon">&#9888;</text>
         <text class="error-text">请登录账号使用</text>
-        <view class="error-btn" @click="goLogin">立即登录</view>
       </view>
       
       <!-- Empty State -->
