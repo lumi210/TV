@@ -455,6 +455,13 @@ export default {
         return
       }
       
+      this.availableSources = this.allSources.map((source, index) => ({
+        ...source,
+        speed: null,
+        quality: null,
+        available: true
+      }))
+      
       this.isSpeedTesting = true
       this.isLoading = true
       this.speedTestProgress = 0
@@ -493,17 +500,9 @@ export default {
        
       this.isSpeedTesting = false
       this.isLoading = false
-      console.log('[Play] speed test done, available:', results.length)
+      console.log('[Play] speed test done, available:', results.length, 'total:', this.allSources.length)
       
-      if (results.length === 0) {
-        console.log('[Play] speed test all failed, using original sources')
-        this.availableSources = this.allSources.map((source, index) => ({
-          ...source,
-          speed: null,
-          quality: null,
-          available: true
-        }))
-      } else {
+      if (results.length > 0) {
         this.availableSources = results
       }
       
@@ -983,21 +982,22 @@ export default {
         return
       }
       
-      const sourceKey = this.currentSource?.source || 'unknown'
       const videoId = this.id || 'video_' + Date.now()
-      const recordKey = sourceKey + '+' + videoId
+      const recordKey = videoId
       
       const record = {
         key: recordKey,
         record: {
           title: this.title,
+          videoId: videoId,
           source_name: this.currentSource?.source_name || '未知源',
+          source: this.currentSource?.source || '',
           cover: this.poster,
           year: this.info?.year || '',
           index: this.currentEpisode + 1,
           total_episodes: this.currentEpisodes.length,
           play_time: Math.floor(this.currentTime) || 0,
-          total_time: Math.floor(this.duration) || 0,
+          duration: Math.floor(this.duration) || 0,
           save_time: Date.now(),
           search_title: this.title
         }
