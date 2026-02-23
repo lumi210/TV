@@ -10,7 +10,7 @@
     <scroll-view scroll-y class="content">
       <view class="list">
         <view class="item" v-for="(item, index) in list" :key="index" @click="goDetail(item)">
-          <image class="cover" :src="item.cover || item.pic" mode="aspectFill" lazy-load />
+          <image class="cover" :src="getCover(item)" mode="aspectFill" lazy-load @error="onCoverError(item)" />
           <view class="info">
             <text class="title">{{ item.title || item.name }}</text>
             <view class="meta">
@@ -82,6 +82,30 @@ export default {
           this.loading = false
         }
       })
+    },
+    getCover(item) {
+      const url = item.cover || item.pic || item.poster || item.thumb
+      if (!url) {
+        return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAiIGhlaWdodD0iMjIwIiB2aWV3Qm94PSIwIDAgMTYwIDIyMCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIyMjAiLz48dGV4dCB4PSI4MCIgeT0iMTEwIiBmaWxsPSIjODg4IiBmb250LXNpemU9IjE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIj7ml6DmtITlm77niYc8L3RleHQ+PC9zdmc+'
+      }
+      return this.proxyImage(url)
+    },
+    proxyImage(url) {
+      if (!url || url.startsWith('data:')) return url
+      
+      if (url.includes('doubanio.com')) {
+        return buildUrl('/api/image-proxy?url=' + encodeURIComponent(url))
+      }
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        if (!url.includes('monkeycode-ai.online') && !url.includes('localhost')) {
+          return buildUrl('/api/image-proxy?url=' + encodeURIComponent(url))
+        }
+      }
+      
+      return url
+    },
+    onCoverError(item) {
+      item.cover = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAiIGhlaWdodD0iMjIwIiB2aWV3Qm94PSIwIDAgMTYwIDIyMCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIyMjAiLz48dGV4dCB4PSI4MCIgeT0iMTEwIiBmaWxsPSIjODg4IiBmb250LXNpemU9IjE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIj7ml6DmtITlm77niYc8L3RleHQ+PC9zdmc+'
     },
     deleteItem(item, index) {
       uni.showModal({
