@@ -10,7 +10,7 @@ export default defineConfig({
     allowedHosts: ['.monkeycode-ai.online', 'all'],
     proxy: {
       '/api': {
-        target: 'http://47.113.227.252:3000',
+        target: 'http://127.0.0.1:3000',
         changeOrigin: true
       },
       '/shortdrama-api': {
