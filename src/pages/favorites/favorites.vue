@@ -88,14 +88,22 @@ export default {
         content: '确定取消收藏？',
         success: (res) => {
           if (res.confirm) {
-            const id = item.id || item._id || item.videoId
+            const key = item._key || item.key
+            if (!key) {
+              uni.showToast({ title: '无法删除：缺少key', icon: 'none' })
+              return
+            }
             uni.request({
-              url: '/api/favorites/' + id,
+              url: '/api/favorites?key=' + encodeURIComponent(key),
               method: 'DELETE',
               withCredentials: true,
-              success: () => {
-                this.list.splice(index, 1)
-                uni.showToast({ title: '已取消', icon: 'none' })
+              success: (res) => {
+                if (res.statusCode === 200) {
+                  this.list.splice(index, 1)
+                  uni.showToast({ title: '已取消', icon: 'none' })
+                } else {
+                  uni.showToast({ title: res.data?.error || '操作失败', icon: 'none' })
+                }
               },
               fail: () => {
                 uni.showToast({ title: '操作失败', icon: 'none' })

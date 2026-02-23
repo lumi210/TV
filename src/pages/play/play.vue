@@ -985,21 +985,20 @@ export default {
       const record = {
         key: recordKey,
         record: {
-          id: videoId,
           title: this.title,
-          source: sourceKey,
           source_name: this.currentSource?.source_name || '未知源',
           cover: this.poster,
+          year: this.info?.year || '',
           index: this.currentEpisode + 1,
           total_episodes: this.currentEpisodes.length,
           play_time: Math.floor(this.currentTime) || 0,
-          duration: Math.floor(this.duration) || 0,
+          total_time: Math.floor(this.duration) || 0,
           save_time: Date.now(),
-          url: this.videoUrl
+          search_title: this.title
         }
       }
       
-      console.log('[Play] saving play record:', recordKey, 'title:', this.title)
+      console.log('[Play] saving play record:', recordKey, 'title:', this.title, 'index:', record.record.index)
       
       uni.request({
         url: '/api/playrecords',
@@ -1054,18 +1053,14 @@ export default {
         })
       } else {
         const favorite = {
-          videoId: this.id,
           title: this.title,
-          source: this.currentSource?.source,
           source_name: this.currentSource?.source_name || '未知源',
           cover: this.poster,
-          pic: this.poster,
-          type: this.type || 'movie',
-          year: this.info?.year,
-          rate: this.info?.rate,
-          episodes: this.currentEpisodes,
-          episodes_titles: this.episodeTitles,
-          save_time: Date.now()
+          year: this.info?.year || '',
+          total_episodes: this.currentEpisodes.length,
+          save_time: Date.now(),
+          search_title: this.title,
+          type: this.type || 'movie'
         }
         uni.request({
           url: '/api/favorites',
