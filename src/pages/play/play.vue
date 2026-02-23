@@ -382,7 +382,6 @@ export default {
       
       this.isLoading = false
       
-      // 短剧类型不需要搜索其他源，直接播放
       if (this.type === 'shortdrama' && this.allSources.length > 0) {
         this.availableSources = [...this.allSources]
         this.currentEpisodes = this.allSources[0].episodes
@@ -391,12 +390,10 @@ export default {
         return
       }
       
-      // 搜索并测速，测速完成后自动播放最快源
       const searchTitle = data.title || data.name || data.search_title
       if (searchTitle) {
         this.searchAndTestSources(searchTitle)
       } else if (this.allSources.length > 0) {
-        // 没有搜索关键词时，直接测速现有源
         this.testAllSources()
       }
     },
@@ -466,9 +463,7 @@ export default {
       }))
       
       this.isSpeedTesting = true
-      this.isLoading = true
       this.speedTestProgress = 0
-      this.loadingMessage = '正在检测播放源速度...'
       
       const total = this.allSources.length
       let tested = 0
@@ -502,11 +497,12 @@ export default {
       })
        
       this.isSpeedTesting = false
-      this.isLoading = false
       console.log('[Play] speed test done, available:', results.length, 'total:', this.allSources.length)
       
       if (results.length > 0) {
         this.availableSources = results
+      } else {
+        this.availableSources = [...this.allSources]
       }
       
       if (this.availableSources.length > 0) {
@@ -545,7 +541,12 @@ export default {
           return
         }
         
-        const url = source.episodes[0]
+        let url = source.episodes[0]
+        if (url.includes('.m3u8') && !url.includes('://')) {
+          url = 'https:' + url
+        }
+        
+        const testUrl = this.getTestUrl(url)
         const startTime = Date.now()
         let resolved = false
         
@@ -554,12 +555,12 @@ export default {
             resolved = true
             resolve({ available: false, speed: null, quality: null })
           }
-        }, 3000)
+        }, 5000)
         
         uni.request({
-          url: url,
+          url: testUrl,
           method: 'HEAD',
-          timeout: 3000,
+          timeout: 5000,
           success: (res) => {
             if (!resolved) {
               resolved = true
@@ -577,11 +578,25 @@ export default {
             if (!resolved) {
               resolved = true
               clearTimeout(timeout)
-              resolve({ available: false, speed: null, quality: null })
+              resolve({ available: true, speed: 9999, quality: 'HLS' })
             }
           }
         })
       })
+    },
+    
+    getTestUrl(url) {
+      if (!url || url.startsWith('data:')) return url
+      
+      if (url.includes('monkeycode-ai.online') || url.includes('localhost')) {
+        return url
+      }
+      
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return buildUrl('/api/video-proxy?url=' + encodeURIComponent(url))
+      }
+      
+      return url
     },
     
     detectQuality(headers) {
@@ -727,6 +742,8 @@ export default {
         url = 'https:' + url
       }
       
+      url = this.proxyVideoUrl(url)
+      
       console.log('[Play] video url:', url)
       
       this.videoUrl = url
@@ -739,6 +756,20 @@ export default {
       this.checkFavorite()
       
       this.savePlayRecord()
+    },
+    
+    proxyVideoUrl(url) {
+      if (!url || url.startsWith('data:')) return url
+      
+      if (url.includes('monkeycode-ai.online') || url.includes('localhost')) {
+        return url
+      }
+      
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        return buildUrl('/api/video-proxy?url=' + encodeURIComponent(url))
+      }
+      
+      return url
     },
     
     playShortDramaEpisode(episodeUrl) {
@@ -994,9 +1025,15 @@ export default {
         return
       }
       
+      if (!this.title) {
+        console.warn('[Play] savePlayRecord skipped: no title')
+        return
+      }
+      
       const source = this.currentSource?.source || 'unknown'
       const videoId = this.id || 'video_' + Date.now()
       const recordKey = source + '+' + videoId
+      const episodeIndex = this.currentEpisode >= 0 ? this.currentEpisode + 1 : 1
       
       const record = {
         key: recordKey,
@@ -1007,9 +1044,10 @@ export default {
           source: source,
           cover: this.originalPoster || this.poster,
           year: this.info?.year || '',
-          index: this.currentEpisode + 1,
-          total_episodes: this.currentEpisodes.length,
+          index: episodeIndex,
+          total_episodes: this.currentEpisodes.length || 1,
           play_time: Math.floor(this.currentTime) || 0,
+          total_time: Math.floor(this.duration) || 0,
           duration: Math.floor(this.duration) || 0,
           save_time: Date.now(),
           search_title: this.title
@@ -1070,10 +1108,12 @@ export default {
           }
         })
       } else {
+        const coverUrl = this.originalPoster || this.poster || ''
+        console.log('[Play] saving favorite, cover:', coverUrl, 'originalPoster:', this.originalPoster)
         const favorite = {
           title: this.title,
           source_name: this.currentSource?.source_name || '未知源',
-          cover: this.originalPoster,
+          cover: coverUrl,
           year: this.info?.year || '',
           total_episodes: this.currentEpisodes.length,
           save_time: Date.now(),

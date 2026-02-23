@@ -91,8 +91,12 @@ export default {
         return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNjAiIGhlaWdodD0iMjIwIiB2aWV3Qm94PSIwIDAgMTYwIDIyMCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjE2MCIgaGVpZ2h0PSIyMjAiLz48dGV4dCB4PSI4MCIgeT0iMTEwIiBmaWxsPSIjODg4IiBmb250LXNpemU9IjE0IiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIj7ml6DmtITlm77niYc8L3RleHQ+PC9zdmc+'
       }
       
-      if (url.includes('/api/image-proxy')) {
+      if (url.includes('/api/image-proxy?url=')) {
         return url
+      }
+      
+      if (url.includes('/api/image-proxy')) {
+        return buildUrl(url)
       }
       
       return this.proxyImage(url)
