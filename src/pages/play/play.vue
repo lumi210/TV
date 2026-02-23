@@ -84,7 +84,7 @@
       </view>
     </view>
 
-    <scroll-view scroll-y class="content">
+    <view class="content">
       <view class="info">
         <view class="title-row">
           <text class="title">{{ title }}</text>
@@ -184,7 +184,7 @@
       </view>
 
       <view class="safe-area-bottom"></view>
-    </scroll-view>
+    </view>
   </view>
 </template>
 
