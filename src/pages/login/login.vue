@@ -82,6 +82,19 @@ export default {
           console.log('[Login] response:', res.statusCode, res.data)
           if (res.statusCode === 200 && res.data && res.data.ok) {
             uni.setStorageSync('userInfo', { username: this.username })
+            const headers = res.header || {}
+            const setCookie = headers['set-cookie'] || headers['Set-Cookie']
+            if (setCookie) {
+              let cookieValue = ''
+              if (Array.isArray(setCookie)) {
+                cookieValue = setCookie.map(c => c.split(';')[0]).join('; ')
+              } else {
+                cookieValue = setCookie.split(';')[0]
+              }
+              uni.setStorageSync('user_cookie', cookieValue)
+            } else {
+              uni.setStorageSync('user_cookie', 'logged_in')
+            }
             uni.showToast({ title: '登录成功', icon: 'success' })
             setTimeout(() => {
               uni.switchTab({ url: '/pages/index/index' })

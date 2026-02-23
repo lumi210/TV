@@ -220,8 +220,7 @@ export default {
     
     checkLogin() {
       const userInfo = uni.getStorageSync('userInfo')
-      const userCookie = uni.getStorageSync('user_cookie')
-      if (!userInfo || !userCookie) {
+      if (!userInfo) {
         uni.showModal({
           title: '提示',
           content: '请登录账号后观看影片',

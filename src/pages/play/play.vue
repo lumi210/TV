@@ -271,8 +271,7 @@ export default {
   },
   checkLogin() {
     const userInfo = uni.getStorageSync('userInfo')
-    const userCookie = uni.getStorageSync('user_cookie')
-    if (!userInfo || !userCookie) {
+    if (!userInfo) {
       this.isLoading = false
       this.errorMessage = '请先登录账号'
       uni.showModal({
