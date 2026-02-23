@@ -90,11 +90,11 @@ export default {
     proxyImage(url) {
       if (!url || url.startsWith('data:')) return url
       if (url.includes('doubanio.com') || url.includes('img9.doubanio.com') || url.includes('img2.doubanio.com') || url.includes('img1.doubanio.com') || url.includes('img3.doubanio.com') || url.includes('img4.doubanio.com') || url.includes('img5.doubanio.com') || url.includes('img6.doubanio.com') || url.includes('img7.doubanio.com')) {
-        return '/api/image-proxy?url=' + encodeURIComponent(url)
+        return buildUrl('/api/image-proxy?url=' + encodeURIComponent(url))
       }
       if (url.startsWith('http://') || url.startsWith('https://')) {
         if (!url.includes('monkeycode-ai.online') && !url.includes('localhost')) {
-          return '/api/image-proxy?url=' + encodeURIComponent(url)
+          return buildUrl('/api/image-proxy?url=' + encodeURIComponent(url))
         }
       }
       return url

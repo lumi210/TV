@@ -114,11 +114,11 @@ export default {
     proxyImage(url) {
       if (!url || url.startsWith('data:')) return url
       if (url.includes('doubanio.com') || url.includes('img9.doubanio.com')) {
-        return '/api/image-proxy?url=' + encodeURIComponent(url)
+        return buildUrl('/api/image-proxy?url=' + encodeURIComponent(url))
       }
       if (url.startsWith('http://') || url.startsWith('https://')) {
         if (!url.includes('monkeycode-ai.online') && !url.includes('localhost')) {
-          return '/api/image-proxy?url=' + encodeURIComponent(url)
+          return buildUrl('/api/image-proxy?url=' + encodeURIComponent(url))
         }
       }
       return url
