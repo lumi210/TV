@@ -1446,8 +1446,8 @@ export default {
 }
 
 .content {
-  height: calc(100vh - 88rpx - 422rpx);
-  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .info {
