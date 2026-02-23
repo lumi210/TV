@@ -1448,6 +1448,7 @@ export default {
 .content {
   flex: 1;
   min-height: 300rpx;
+  overflow-y: auto;
 }
 
 .info {
