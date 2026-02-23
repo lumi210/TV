@@ -270,29 +270,6 @@ export default {
     }
     this.checkFavorite()
   },
-  checkLogin() {
-    const userInfo = uni.getStorageSync('userInfo')
-    if (!userInfo) {
-      this.isLoading = false
-      this.errorMessage = '请先登录账号'
-      uni.showModal({
-        title: '提示',
-        content: '请先登录账号后观看影片',
-        showCancel: true,
-        confirmText: '去登录',
-        cancelText: '返回',
-        success: (res) => {
-          if (res.confirm) {
-            uni.navigateTo({ url: '/pages/login/login' })
-          } else {
-            uni.navigateBack()
-          }
-        }
-      })
-      return false
-    }
-    return true
-  },
   onUnload() {
     this.savePlayRecord()
     this.destroyHls()
@@ -304,6 +281,29 @@ export default {
     this.savePlayRecord()
   },
   methods: {
+    checkLogin() {
+      const userInfo = uni.getStorageSync('userInfo')
+      if (!userInfo) {
+        this.isLoading = false
+        this.errorMessage = '请先登录账号'
+        uni.showModal({
+          title: '提示',
+          content: '请先登录账号后观看影片',
+          showCancel: true,
+          confirmText: '去登录',
+          cancelText: '返回',
+          success: (res) => {
+            if (res.confirm) {
+              uni.navigateTo({ url: '/pages/login/login' })
+            } else {
+              uni.navigateBack()
+            }
+          }
+        })
+        return false
+      }
+      return true
+    },
     goBack() {
       uni.navigateBack()
     },
