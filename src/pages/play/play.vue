@@ -9,7 +9,7 @@
     </view>
     
     <view class="video-wrap">
-      <view v-if="videoUrl" class="video-container">
+      <view v-if="videoUrl || hlsUrl" class="video-container">
         <!-- #ifdef H5 -->
         <video 
           ref="videoPlayer"
@@ -190,6 +190,9 @@
 
 <script>
 import { buildUrl } from '../../utils/request'
+// #ifdef H5
+import Hls from 'hls.js'
+// #endif
 
 export default {
   data() {
@@ -198,6 +201,7 @@ export default {
       type: '',
       title: '',
       videoUrl: '',
+      hlsUrl: '',
       poster: '',
       originalPoster: '',
       isLoading: true,
@@ -224,7 +228,8 @@ export default {
       isSpeedTesting: false,
       speedTestProgress: 0,
       speedTestResults: {},
-      useProxy: false
+      useProxy: false,
+      hlsInstance: null
     }
   },
   computed: {
@@ -258,6 +263,7 @@ export default {
   },
   onUnload() {
     this.savePlayRecord()
+    this.destroyHls()
     if (this.saveTimer) {
       clearTimeout(this.saveTimer)
     }
@@ -527,13 +533,14 @@ export default {
       })
        
       this.isSpeedTesting = false
+      this.isLoading = false
       console.log('[Play] speed test done, available:', results.length, 'total:', this.allSources.length)
       console.log('[Play] after speed test - title:', this.title, 'info:', this.info, 'poster:', this.poster)
       
       if (results.length > 0) {
         this.availableSources = results
       } else {
-        this.availableSources = [...this.allSources]
+        this.availableSources = []
       }
       
       console.log('[Play] availableSources:', this.availableSources.length)
@@ -774,11 +781,67 @@ export default {
         url = 'https:' + url
       }
       
+      const originalUrl = url
       url = this.proxyVideoUrl(url)
       
       console.log('[Play] video url:', url)
+      console.log('[Play] original url:', originalUrl)
       
+      this.destroyHls()
+      
+      const isHls = originalUrl.includes('.m3u8')
+      
+      // #ifdef H5
+      if (isHls && Hls.isSupported()) {
+        this.hlsUrl = originalUrl
+        this.videoUrl = ''
+        this.$nextTick(() => {
+          const video = document.getElementById('video-player')
+          if (video) {
+            this.hlsInstance = new Hls({
+              enableWorker: true,
+              lowLatencyMode: true,
+              backBufferLength: 90
+            })
+            this.hlsInstance.loadSource(url)
+            this.hlsInstance.attachMedia(video)
+            this.hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+              console.log('[Play] HLS manifest parsed, starting playback')
+              video.play().catch(e => console.warn('[Play] autoplay failed:', e))
+            })
+            this.hlsInstance.on(Hls.Events.ERROR, (event, data) => {
+              console.error('[Play] HLS error:', data)
+              if (data.fatal) {
+                switch (data.type) {
+                  case Hls.ErrorTypes.NETWORK_ERROR:
+                    console.log('[Play] network error, trying to recover')
+                    this.hlsInstance.startLoad()
+                    break
+                  case Hls.ErrorTypes.MEDIA_ERROR:
+                    console.log('[Play] media error, trying to recover')
+                    this.hlsInstance.recoverMediaError()
+                    break
+                  default:
+                    console.log('[Play] fatal error, cannot recover')
+                    this.destroyHls()
+                    this.onVideoError({ type: 'hls' })
+                    break
+                }
+              }
+            })
+          }
+        })
+      } else {
+        this.hlsUrl = ''
+        this.videoUrl = url
+      }
+      // #endif
+      
+      // #ifndef H5
+      this.hlsUrl = ''
       this.videoUrl = url
+      // #endif
+      
       this.retryCount = 0
       this.errorMessage = ''
       this.isLoading = false
@@ -788,6 +851,15 @@ export default {
       this.checkFavorite()
       
       this.savePlayRecord()
+    },
+    
+    destroyHls() {
+      // #ifdef H5
+      if (this.hlsInstance) {
+        this.hlsInstance.destroy()
+        this.hlsInstance = null
+      }
+      // #endif
     },
     
     proxyVideoUrl(url) {
@@ -1365,7 +1437,6 @@ export default {
 .content {
   flex: 1;
   height: 0;
-  overflow: hidden;
 }
 
 .info {
