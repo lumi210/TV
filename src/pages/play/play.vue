@@ -1293,6 +1293,8 @@ export default {
   background: $color-bg;
   display: flex;
   flex-direction: column;
+  padding-top: 88rpx;
+  box-sizing: border-box;
 }
 
 .custom-navbar {
@@ -1343,10 +1345,8 @@ export default {
 .video-wrap {
   width: 100%;
   height: 422rpx;
-  max-height: 422rpx;
   background: #000;
   position: relative;
-  margin-top: 88rpx;
   flex-shrink: 0;
 }
 
@@ -1447,7 +1447,7 @@ export default {
 
 .content {
   flex: 1;
-  min-height: 300rpx;
+  min-height: 0;
   overflow-y: auto;
 }
 
