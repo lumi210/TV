@@ -519,15 +519,6 @@ export default {
         }
         
         this.playEpisode(0)
-        
-        this.$nextTick(() => {
-          setTimeout(() => {
-            const video = document.getElementById('video-player')
-            if (video) {
-              video.play().catch(e => console.warn('[Play] autoplay failed:', e))
-            }
-          }, 500)
-        })
       } else {
         this.isLoading = false
         this.errorMessage = '所有播放源均不可用'
@@ -593,7 +584,13 @@ export default {
       }
       
       if (url.startsWith('http://') || url.startsWith('https://')) {
+        // #ifdef H5
         return buildUrl('/api/video-proxy?url=' + encodeURIComponent(url))
+        // #endif
+        
+        // #ifndef H5
+        return url
+        // #endif
       }
       
       return url
@@ -766,7 +763,13 @@ export default {
       }
       
       if (url.startsWith('http://') || url.startsWith('https://')) {
+        // #ifdef H5
         return buildUrl('/api/video-proxy?url=' + encodeURIComponent(url))
+        // #endif
+        
+        // #ifndef H5
+        return url
+        // #endif
       }
       
       return url
