@@ -49,32 +49,28 @@ export default {
       
       this.loading = true
       
+      const sourceApi = 'https://wwzy.tv/api.php/provide/vod?ac=detail&t=1&pg=' + this.page
+      const apiUrl = buildUrl('/api/proxy/cms?url=' + encodeURIComponent(sourceApi))
+      
       uni.request({
-        url: buildUrl('/api/shortdrama/list?categoryId=1&page=') + this.page + '&size=20',
-        withCredentials: true,
+        url: apiUrl,
         success: (res) => {
-          console.log('[ShortDrama] response:', res.statusCode, JSON.stringify(res.data).substring(0, 500))
-          if (res.statusCode === 200 && res.data) {
-            let list = []
-            let hasMore = false
-            
-            if (Array.isArray(res.data)) {
-              list = res.data
-              hasMore = res.data.length === 20
-            } else if (res.data.list) {
-              list = res.data.list
-              hasMore = res.data.hasMore !== undefined ? res.data.hasMore : list.length === 20
-            } else if (res.data.data) {
-              list = Array.isArray(res.data.data) ? res.data.data : (res.data.data.list || [])
-              hasMore = res.data.data.hasMore !== undefined ? res.data.data.hasMore : list.length === 20
-            }
+          console.log('[ShortDrama] response:', res.statusCode, JSON.stringify(res.data || {}).substring(0, 500))
+          if (res.statusCode === 200 && res.data && res.data.list) {
+            const list = res.data.list.map((item) => ({
+              id: item.vod_id,
+              name: item.vod_name,
+              cover: item.vod_pic,
+              episode_count: parseInt(item.vod_remarks?.replace(/[^\d]/g, '') || '1'),
+              score: parseFloat(item.vod_score) || 0
+            }))
             
             if (this.page === 1) {
               this.dramas = list
             } else {
               this.dramas = this.dramas.concat(list)
             }
-            this.hasMore = hasMore
+            this.hasMore = res.data.page < res.data.pagecount
           }
         },
         fail: (err) => {

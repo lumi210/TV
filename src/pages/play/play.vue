@@ -313,41 +313,20 @@ export default {
     
     fetchShortDramaFromMainApi(id, dramaName) {
       return new Promise((resolve) => {
-        uni.request({
-          url: buildUrl('/api/shortdrama/detail?id=' + id),
-          withCredentials: true,
-          success: (res) => {
-            console.log('[Play] detail api response:', res.statusCode, JSON.stringify(res.data || {}).substring(0, 500))
-            if (res.statusCode === 200 && res.data && res.data.episodes && res.data.episodes.length > 0) {
-              resolve({
-                totalEpisodes: res.data.episodes.length,
-                episodes: res.data.episodes,
-                episodes_titles: res.data.episodes_titles || [],
-                cover: res.data.poster || '',
-                description: res.data.desc || '',
-                videoName: res.data.title || dramaName
-              })
-            } else {
-              this.fetchShortDramaFromRemoteApi(id, dramaName).then(resolve)
-            }
-          },
-          fail: (err) => {
-            console.error('[Play] fetch from detail api failed:', err)
-            this.fetchShortDramaFromRemoteApi(id, dramaName).then(resolve)
-          }
-        })
+        this.fetchShortDramaFromRemoteApi(id, dramaName).then(resolve)
       })
     },
     
     fetchShortDramaFromRemoteApi(id, dramaName) {
       return new Promise((resolve) => {
-        const apiUrl = buildUrl('/shortdrama-api?ac=videolist&ids=' + id)
-        console.log('[Play] fetching from remote api:', apiUrl)
+        const sourceApi = 'https://wwzy.tv/api.php/provide/vod?ac=detail&ids=' + id
+        const apiUrl = buildUrl('/api/proxy/cms?url=' + encodeURIComponent(sourceApi))
+        console.log('[Play] fetching from source api:', apiUrl)
         
         uni.request({
           url: apiUrl,
           success: (res) => {
-            console.log('[Play] remote api response:', res.statusCode, JSON.stringify(res.data || {}).substring(0, 500))
+            console.log('[Play] source api response:', res.statusCode, JSON.stringify(res.data || {}).substring(0, 500))
             if (res.statusCode === 200 && res.data && res.data.list && res.data.list.length > 0) {
               const item = res.data.list[0]
               const playUrl = item.vod_play_url || ''
@@ -384,7 +363,7 @@ export default {
             }
           },
           fail: (err) => {
-            console.error('[Play] fetch from remote api failed:', err)
+            console.error('[Play] fetch from source api failed:', err)
             resolve({ msg: '网络请求失败', episodes: [] })
           }
         })
