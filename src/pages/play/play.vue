@@ -194,7 +194,8 @@ export default {
       activeTab: 'episodes',
       isSpeedTesting: false,
       speedTestProgress: 0,
-      speedTestResults: {}
+      speedTestResults: {},
+      useProxy: false
     }
   },
   computed: {
@@ -768,6 +769,10 @@ export default {
         // #endif
         
         // #ifndef H5
+        // App 端也尝试使用代理（部分视频源可能需要）
+        if (this.useProxy) {
+          return buildUrl('/api/video-proxy?url=' + encodeURIComponent(url))
+        }
         return url
         // #endif
       }
@@ -948,16 +953,48 @@ export default {
       if (this.retryCount < this.maxRetry) {
         this.retryCount++
         this.isBuffering = true
+        
+        // #ifndef H5
+        // App 端重试时切换代理模式
+        if (this.retryCount === 1) {
+          this.useProxy = false
+          this.loadingText = '尝试直接播放...'
+        } else if (this.retryCount === 2) {
+          this.useProxy = true
+          this.loadingText = '尝试代理播放...'
+        } else {
+          this.loadingText = '播放出错，正在重试(' + this.retryCount + '/' + this.maxRetry + ')...'
+        }
+        // #endif
+        
+        // #ifdef H5
         this.loadingText = '播放出错，正在重试(' + this.retryCount + '/' + this.maxRetry + ')...'
+        // #endif
+        
         setTimeout(() => {
           this.playEpisode(this.currentEpisode)
         }, 1000)
       } else {
         this.isBuffering = false
         this.isLoading = false
-        this.errorMessage = '视频播放失败'
+        this.useProxy = false
         
-        if (this.type === 'shortdrama' && this.currentEpisodes.length > this.currentEpisode + 1) {
+        if (this.availableSources.length > this.currentSourceIndex + 1) {
+          uni.showModal({
+            title: '播放失败',
+            content: '当前源播放失败，是否自动切换到下一个播放源？',
+            success: (res) => {
+              if (res.confirm) {
+                this.retryCount = 0
+                this.errorMessage = ''
+                this.switchSource(this.currentSourceIndex + 1)
+              } else {
+                this.errorMessage = '视频播放失败'
+                this.activeTab = 'sources'
+              }
+            }
+          })
+        } else if (this.type === 'shortdrama' && this.currentEpisodes.length > this.currentEpisode + 1) {
           uni.showModal({
             title: '播放失败',
             content: '当前集播放失败，是否尝试播放下一集？',
@@ -967,22 +1004,18 @@ export default {
                 this.errorMessage = ''
                 this.playEpisode(this.currentEpisode + 1)
               } else {
+                this.errorMessage = '视频播放失败'
                 if (this.availableSources.length > 1) {
                   this.activeTab = 'sources'
                 }
               }
             }
           })
-        } else if (this.availableSources.length > 1) {
-          uni.showModal({
-            title: '播放失败',
-            content: '当前源播放失败，是否切换到其他播放源？',
-            success: (res) => {
-              if (res.confirm) {
-                this.activeTab = 'sources'
-              }
-            }
-          })
+        } else {
+          this.errorMessage = '视频播放失败，请尝试其他播放源'
+          if (this.availableSources.length > 1) {
+            this.activeTab = 'sources'
+          }
         }
       }
     },
