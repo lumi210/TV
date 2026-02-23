@@ -1342,10 +1342,12 @@ export default {
 
 .video-wrap {
   width: 100%;
-  aspect-ratio: 16/9;
+  height: 422rpx;
+  max-height: 422rpx;
   background: #000;
   position: relative;
   margin-top: 88rpx;
+  flex-shrink: 0;
 }
 
 .video-container {
@@ -1357,6 +1359,15 @@ export default {
 .video {
   width: 100%;
   height: 100%;
+  object-fit: contain;
+}
+
+.video-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .loading-overlay {
