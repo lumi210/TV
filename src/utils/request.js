@@ -1,4 +1,4 @@
-import { config, getServerUrl } from './config'
+import { config, getServerUrl, getApiUrl } from './config'
 
 class Request {
   constructor() {
@@ -14,7 +14,7 @@ class Request {
     }
     
     // #ifdef H5
-    return url
+    return getApiUrl(url)
     // #endif
     
     // #ifndef H5

@@ -37,6 +37,8 @@
 </template>
 
 <script>
+import { getApiUrl } from '../../utils/config'
+
 export default {
   data() {
     return {
@@ -71,15 +73,17 @@ export default {
       this.loading = true
 
       uni.request({
-        url: '/api/register',
+        url: getApiUrl('/api/register'),
         method: 'POST',
         data: {
           username: this.username,
           password: this.password,
-          inviteCode: this.inviteCode
+          confirmPassword: this.password2,
+          invitationCode: this.inviteCode
         },
         withCredentials: true,
         success: (res) => {
+          console.log('[Register] response:', res.statusCode, res.data)
           if (res.statusCode === 200 && res.data && res.data.ok) {
             uni.showToast({ title: '注册成功', icon: 'success' })
             setTimeout(() => {
@@ -89,7 +93,8 @@ export default {
             uni.showToast({ title: res.data?.error || '注册失败', icon: 'none' })
           }
         },
-        fail: () => {
+        fail: (err) => {
+          console.error('[Register] failed:', err)
           uni.showToast({ title: '网络错误', icon: 'none' })
         },
         complete: () => {

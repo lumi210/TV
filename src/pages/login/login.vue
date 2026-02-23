@@ -34,6 +34,8 @@
 </template>
 
 <script>
+import { getApiUrl } from '../../utils/config'
+
 export default {
   data() {
     return {
@@ -69,7 +71,7 @@ export default {
       this.loading = true
 
       uni.request({
-        url: '/api/login',
+        url: getApiUrl('/api/login'),
         method: 'POST',
         data: {
           username: this.username,
@@ -77,6 +79,7 @@ export default {
         },
         withCredentials: true,
         success: (res) => {
+          console.log('[Login] response:', res.statusCode, res.data)
           if (res.statusCode === 200 && res.data && res.data.ok) {
             uni.setStorageSync('userInfo', { username: this.username })
             uni.showToast({ title: '登录成功', icon: 'success' })
@@ -87,7 +90,8 @@ export default {
             uni.showToast({ title: res.data?.error || '登录失败', icon: 'none' })
           }
         },
-        fail: () => {
+        fail: (err) => {
+          console.error('[Login] failed:', err)
           uni.showToast({ title: '网络错误', icon: 'none' })
         },
         complete: () => {
