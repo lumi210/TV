@@ -13,12 +13,13 @@ class Request {
       return url
     }
     
+    // H5 端使用代理，App 端使用完整地址
     // #ifdef H5
-    return getApiUrl(url)
+    return url
     // #endif
     
     // #ifndef H5
-    return getServerUrl() + url
+    return getApiUrl(url)
     // #endif
   }
 
