@@ -1293,7 +1293,6 @@ export default {
   background: $color-bg;
   display: flex;
   flex-direction: column;
-  padding-top: 88rpx;
 }
 
 .custom-navbar {
@@ -1346,6 +1345,7 @@ export default {
   aspect-ratio: 16/9;
   background: #000;
   position: relative;
+  margin-top: 88rpx;
 }
 
 .video-container {
