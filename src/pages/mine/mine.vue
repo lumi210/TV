@@ -263,8 +263,12 @@ export default {
         success: (res) => {
           if (res.confirm) {
             uni.removeStorageSync('userInfo')
+            uni.removeStorageSync('user_cookie')
             this.userInfo = null
             uni.showToast({ title: '已退出' })
+            setTimeout(() => {
+              uni.navigateTo({ url: '/pages/login/login' })
+            }, 500)
           }
         }
       })
