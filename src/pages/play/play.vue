@@ -368,6 +368,7 @@ export default {
         rate: data.rate || data.rating,
         desc: data.desc || data.description || data.note
       }
+      console.log('[Play] initWithData info set:', this.info)
       
       if (data.episodes && data.episodes.length > 0) {
         this.allSources = [{
@@ -626,16 +627,24 @@ export default {
       }
       
       const first = results[0]
-      this.id = first.id || first.vod_id || ''
-      this.title = first.title || this.title
-      this.originalPoster = first.poster || first.pic || first.cover || ''
-      this.poster = this.proxyImage(this.originalPoster)
-      this.info = {
-        year: first.year,
-        type_name: first.type_name,
-        rate: first.rate || first.rating,
-        desc: first.desc || first.description || first.note
+      
+      // 只在没有设置时才更新 info，避免覆盖已有数据
+      if (!this.id) {
+        this.id = first.id || first.vod_id || ''
       }
+      if (!this.originalPoster) {
+        this.originalPoster = first.poster || first.pic || first.cover || ''
+        this.poster = this.proxyImage(this.originalPoster)
+      }
+      if (!this.info || !this.info.year) {
+        this.info = {
+          year: first.year,
+          type_name: first.type_name,
+          rate: first.rate || first.rating,
+          desc: first.desc || first.description || first.note
+        }
+      }
+      console.log('[Play] processSearchResults info:', this.info)
       
       const sourcesMap = new Map()
       
@@ -985,8 +994,9 @@ export default {
         return
       }
       
+      const source = this.currentSource?.source || 'unknown'
       const videoId = this.id || 'video_' + Date.now()
-      const recordKey = videoId
+      const recordKey = source + '+' + videoId
       
       const record = {
         key: recordKey,
@@ -994,8 +1004,8 @@ export default {
           title: this.title,
           videoId: videoId,
           source_name: this.currentSource?.source_name || '未知源',
-          source: this.currentSource?.source || '',
-          cover: this.poster,
+          source: source,
+          cover: this.originalPoster || this.poster,
           year: this.info?.year || '',
           index: this.currentEpisode + 1,
           total_episodes: this.currentEpisodes.length,

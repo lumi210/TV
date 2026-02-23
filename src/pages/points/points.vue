@@ -122,7 +122,7 @@ export default {
     request(url) {
       return new Promise((resolve, reject) => {
         uni.request({
-          url,
+          url: buildUrl(url),
           withCredentials: true,
           success: (res) => {
             if (res.data && !res.data.error) {
