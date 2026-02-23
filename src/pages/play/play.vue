@@ -239,6 +239,10 @@ export default {
     }
   },
   onLoad(options) {
+    if (!this.checkLogin()) {
+      return
+    }
+    
     this.title = decodeURIComponent(options.title || '播放')
     
     if (options.data) {
@@ -260,7 +264,34 @@ export default {
     }
   },
   onShow() {
+    if (!this.checkLogin()) {
+      return
+    }
     this.checkFavorite()
+  },
+  checkLogin() {
+    const userInfo = uni.getStorageSync('userInfo')
+    const userCookie = uni.getStorageSync('user_cookie')
+    if (!userInfo || !userCookie) {
+      this.isLoading = false
+      this.errorMessage = '请先登录账号'
+      uni.showModal({
+        title: '提示',
+        content: '请先登录账号后观看影片',
+        showCancel: true,
+        confirmText: '去登录',
+        cancelText: '返回',
+        success: (res) => {
+          if (res.confirm) {
+            uni.navigateTo({ url: '/pages/login/login' })
+          } else {
+            uni.navigateBack()
+          }
+        }
+      })
+      return false
+    }
+    return true
   },
   onUnload() {
     this.savePlayRecord()
