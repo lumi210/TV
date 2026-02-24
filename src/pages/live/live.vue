@@ -100,7 +100,8 @@ export default {
       searchKeyword: '',
       filteredChannels: [],
       hlsInstance: null,
-      videoSrc: ''
+      videoSrc: '',
+      useProxy: true
     }
   },
   computed: {
@@ -222,8 +223,32 @@ export default {
       }
       this.playingChannel = channel
       this.$nextTick(() => {
-        this.initPlayer(channel.url)
+        const url = this.proxyLiveUrl(channel.url)
+        this.initPlayer(url)
       })
+    },
+    
+    proxyLiveUrl(url) {
+      if (!url || url.startsWith('data:')) return url
+      
+      if (url.includes('monkeycode-ai.online') || url.includes('localhost')) {
+        return url
+      }
+      
+      if (url.startsWith('http://') || url.startsWith('https://')) {
+        // #ifdef H5
+        if (this.useProxy) {
+          return buildUrl('/api/video-proxy?url=' + encodeURIComponent(url))
+        }
+        return url
+        // #endif
+        
+        // #ifndef H5
+        return url
+        // #endif
+      }
+      
+      return url
     },
     
     initPlayer(url) {
@@ -240,6 +265,7 @@ export default {
       const isHls = url.includes('.m3u8') || url.includes('m3u8')
       
       if (isHls && Hls.isSupported()) {
+        this.videoSrc = ''
         this.hlsInstance = new Hls({
           enableWorker: true,
           lowLatencyMode: true,
@@ -271,13 +297,16 @@ export default {
             }
           }
         })
-        this.videoSrc = ''
       } else if (video.canPlayType('application/vnd.apple.mpegurl') && isHls) {
         this.videoSrc = url
-        video.play().catch(e => console.warn('[Live] autoplay failed:', e))
+        this.$nextTick(() => {
+          video.play().catch(e => console.warn('[Live] autoplay failed:', e))
+        })
       } else {
         this.videoSrc = url
-        video.play().catch(e => console.warn('[Live] autoplay failed:', e))
+        this.$nextTick(() => {
+          video.play().catch(e => console.warn('[Live] autoplay failed:', e))
+        })
       }
     },
     
