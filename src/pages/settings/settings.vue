@@ -26,9 +26,12 @@
 
       <view class="section">
         <text class="section-title">关于</text>
-        <view class="item">
+        <view class="item" @click="checkUpdate">
           <text>版本</text>
-          <text class="version">v1.0.0</text>
+          <view class="version-info">
+            <text class="version">v{{ appVersion }}</text>
+            <text class="check-update" v-if="!isH5">检查更新</text>
+          </view>
         </view>
       </view>
     </view>
@@ -36,16 +39,24 @@
 </template>
 
 <script>
+import { checkUpdate as doCheckUpdate, showUpdateDialog } from '../../utils/hot-update'
+
 export default {
   data() {
     return {
       autoPlay: true,
-      cacheSize: '0KB'
+      cacheSize: '0KB',
+      appVersion: '1.0.0',
+      isH5: false
     }
   },
   onShow() {
     this.autoPlay = uni.getStorageSync('autoPlay') !== false
     this.calcCache()
+    this.getVersion()
+    // #ifdef H5
+    this.isH5 = true
+    // #endif
   },
   methods: {
     goBack() {
@@ -62,6 +73,16 @@ export default {
         this.cacheSize = kb > 1024 ? (kb / 1024).toFixed(2) + 'MB' : kb + 'KB'
       } catch (e) {
         this.cacheSize = '0KB'
+      }
+    },
+    getVersion() {
+      try {
+        const accountInfo = uni.getAccountInfoSync ? uni.getAccountInfoSync() : null
+        if (accountInfo && accountInfo.miniProgram) {
+          this.appVersion = accountInfo.miniProgram.appVersion || '1.0.0'
+        }
+      } catch (e) {
+        this.appVersion = '1.0.0'
       }
     },
     clearCache() {
@@ -86,6 +107,27 @@ export default {
           }
         }
       })
+    },
+    async checkUpdate() {
+      // #ifdef H5
+      uni.showToast({ title: 'H5无需更新', icon: 'none' })
+      return
+      // #endif
+
+      uni.showLoading({ title: '检查中...', mask: true })
+      try {
+        const updateInfo = await doCheckUpdate()
+        uni.hideLoading()
+        
+        if (updateInfo) {
+          showUpdateDialog(updateInfo)
+        } else {
+          uni.showToast({ title: '已是最新版本', icon: 'success' })
+        }
+      } catch (error) {
+        uni.hideLoading()
+        uni.showToast({ title: '检查失败', icon: 'none' })
+      }
     }
   }
 }
@@ -153,5 +195,16 @@ export default {
 
 .cache-size, .version {
   color: #888;
+}
+
+.version-info {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.check-update {
+  color: #ff6b6b;
+  font-size: 26rpx;
 }
 </style>

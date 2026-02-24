@@ -1,4 +1,6 @@
 <script>
+import { checkAndUpdateOnLaunch } from './utils/hot-update'
+
 export default {
   onLaunch() {
     console.log('App Launch')
@@ -8,6 +10,9 @@ export default {
       frontColor: '#ffffff',
       backgroundColor: '#0f0f1a'
     })
+    
+    // 检查热更新
+    checkAndUpdateOnLaunch()
     // #endif
   },
   onShow() {
