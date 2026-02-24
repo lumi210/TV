@@ -2,32 +2,14 @@ import { buildUrl } from './request'
 
 const HOT_UPDATE_STORAGE_KEY = 'hot_update_info'
 
-export interface UpdateInfo {
-  hasUpdate: boolean
-  updateType: 'silent' | 'forced' | 'normal'
-  version: string
-  versionCode: number
-  updateLog?: string
-  wgtUrl?: string
-  pkgUrl?: string
-  publishTime: number
-}
-
-export interface HotUpdateInfo {
-  lastCheckTime: number
-  skippedVersion: string
-  installedVersion: string
-}
-
-function getPlatform(): 'android' | 'ios' {
+function getPlatform() {
   const platform = uni.getSystemInfoSync().platform
   if (platform === 'android') return 'android'
   if (platform === 'ios') return 'ios'
   return 'android'
 }
 
-function getCurrentVersionCode(): number {
-  const manifest = uni.getSystemInfoSync()
+function getCurrentVersionCode() {
   try {
     const accountInfo = uni.getAccountInfoSync ? uni.getAccountInfoSync() : null
     if (accountInfo && accountInfo.miniProgram) {
@@ -37,7 +19,7 @@ function getCurrentVersionCode(): number {
   return 100
 }
 
-function getCurrentVersion(): string {
+function getCurrentVersion() {
   try {
     const accountInfo = uni.getAccountInfoSync ? uni.getAccountInfoSync() : null
     if (accountInfo && accountInfo.miniProgram) {
@@ -47,7 +29,7 @@ function getCurrentVersion(): string {
   return '1.0.0'
 }
 
-function getHotUpdateInfo(): HotUpdateInfo {
+function getHotUpdateInfo() {
   try {
     const stored = uni.getStorageSync(HOT_UPDATE_STORAGE_KEY)
     if (stored) {
@@ -61,13 +43,13 @@ function getHotUpdateInfo(): HotUpdateInfo {
   }
 }
 
-function saveHotUpdateInfo(info: HotUpdateInfo): void {
+function saveHotUpdateInfo(info) {
   try {
     uni.setStorageSync(HOT_UPDATE_STORAGE_KEY, JSON.stringify(info))
   } catch (e) {}
 }
 
-export async function checkUpdate(silent: boolean = false): Promise<UpdateInfo | null> {
+export async function checkUpdate(silent) {
   // #ifdef H5
   return null
   // #endif
@@ -79,7 +61,7 @@ export async function checkUpdate(silent: boolean = false): Promise<UpdateInfo |
   console.log('[HotUpdate] checking update:', { platform, versionCode, version })
 
   try {
-    const response = await new Promise<any>((resolve, reject) => {
+    const response = await new Promise((resolve, reject) => {
       uni.request({
         url: buildUrl(`/api/app-update?platform=${platform}&versionCode=${versionCode}&version=${version}`),
         method: 'GET',
@@ -102,7 +84,7 @@ export async function checkUpdate(silent: boolean = false): Promise<UpdateInfo |
       return null
     }
 
-    const updateInfo: UpdateInfo = {
+    const updateInfo = {
       hasUpdate: true,
       updateType: response.updateType || 'normal',
       version: response.version,
@@ -129,7 +111,7 @@ export async function checkUpdate(silent: boolean = false): Promise<UpdateInfo |
   }
 }
 
-export function showUpdateDialog(updateInfo: UpdateInfo): void {
+export function showUpdateDialog(updateInfo) {
   const isForced = updateInfo.updateType === 'forced'
   
   let content = '发现新版本 ' + updateInfo.version
@@ -167,7 +149,7 @@ export function showUpdateDialog(updateInfo: UpdateInfo): void {
   }
 }
 
-export function doUpdate(updateInfo: UpdateInfo): void {
+export function doUpdate(updateInfo) {
   if (!updateInfo.wgtUrl && !updateInfo.pkgUrl) {
     uni.showToast({ title: '没有可用的更新包', icon: 'none' })
     return
@@ -215,7 +197,7 @@ export function doUpdate(updateInfo: UpdateInfo): void {
   })
 }
 
-function installWgt(filePath: string, updateInfo: UpdateInfo): void {
+function installWgt(filePath, updateInfo) {
   console.log('[HotUpdate] installing wgt:', filePath)
   
   uni.showLoading({ title: '正在安装...', mask: true })
@@ -246,7 +228,7 @@ function installWgt(filePath: string, updateInfo: UpdateInfo): void {
   })
 }
 
-function installPkg(filePath: string): void {
+function installPkg(filePath) {
   console.log('[HotUpdate] opening pkg:', filePath)
   
   plus.runtime.openFile(filePath, {}, (error) => {
@@ -255,7 +237,7 @@ function installPkg(filePath: string): void {
   })
 }
 
-export async function checkAndUpdateOnLaunch(): Promise<void> {
+export async function checkAndUpdateOnLaunch() {
   // #ifdef H5
   return
   // #endif
