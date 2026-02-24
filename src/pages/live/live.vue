@@ -87,7 +87,9 @@
 
 <script>
 import { buildUrl } from "../../utils/request"
+// #ifdef H5
 import Hls from 'hls.js'
+// #endif
 
 export default {
   data() {
@@ -231,38 +233,39 @@ export default {
     proxyLiveUrl(url) {
       if (!url || url.startsWith('data:')) return url
       
+      // #ifndef H5
+      return url
+      // #endif
+      
+      // #ifdef H5
       if (url.includes('monkeycode-ai.online') || url.includes('localhost')) {
         return url
       }
       
       if (url.startsWith('http://') || url.startsWith('https://')) {
-        // #ifdef H5
         if (this.useProxy) {
           return buildUrl('/api/video-proxy?url=' + encodeURIComponent(url))
         }
         return url
-        // #endif
-        
-        // #ifndef H5
-        return url
-        // #endif
       }
       
       return url
+      // #endif
     },
     
     initPlayer(url) {
       this.destroyPlayer()
       
+      console.log('[Live] init player with url:', url)
+      
+      const isHls = url.includes('.m3u8') || url.includes('m3u8')
+      
+      // #ifdef H5
       const video = document.getElementById('live-video')
       if (!video) {
         console.error('[Live] video element not found')
         return
       }
-      
-      console.log('[Live] init player with url:', url)
-      
-      const isHls = url.includes('.m3u8') || url.includes('m3u8')
       
       if (isHls && Hls.isSupported()) {
         this.videoSrc = ''
@@ -308,6 +311,11 @@ export default {
           video.play().catch(e => console.warn('[Live] autoplay failed:', e))
         })
       }
+      // #endif
+      
+      // #ifndef H5
+      this.videoSrc = url
+      // #endif
     },
     
     destroyPlayer() {
