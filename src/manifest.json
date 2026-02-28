@@ -1,7 +1,7 @@
 {
-    "name" : "LunaTV-AndroidTV",
+    "name" : "LunaUniApp",
     "appid" : "__UNI__2DCF3DE",
-    "description" : "LunaTV 影视聚合播放平台 - 安卓电视版",
+    "description" : "LunaTV 影视聚合播放平台",
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,
@@ -33,14 +33,14 @@
                 "minSdkVersion" : 21,
                 "targetSdkVersion" : 30,
                 "screenOrientation" : [ "landscape" ],
-                "schemes" : "lunatv"
+                "abiFilters" : [ "armeabi-v7a", "arm64-v8a" ]
             },
-                "ios" : {
-                    "idfa" : false,
-                    "allowsArbitraryLoads" : true,
-                    "screenOrientation" : [ "landscape" ],
-                    "dSYMs" : false
-                },
+            "ios" : {
+                "idfa" : false,
+                "allowsArbitraryLoads" : true,
+                "screenOrientation" : [ "landscape" ],
+                "dSYMs" : false
+            },
             "sdkConfigs" : {},
             "icons" : {
                 "android" : {
