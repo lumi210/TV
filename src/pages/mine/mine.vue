@@ -111,7 +111,7 @@
 </template>
 
 <script>
-import { buildUrl } from "../../utils/request"
+import { getApiUrl } from '../../utils/config'
 export default {
   data() {
     return {
@@ -142,7 +142,7 @@ export default {
     loadUserData() {
       // 加载用户统计
       uni.request({
-        url: buildUrl('/api/user/my-stats'),
+        url: getApiUrl('/api/user/my-stats'),
         withCredentials: true,
         success: (res) => {
           console.log('my-stats:', res.data)
@@ -154,7 +154,7 @@ export default {
       
       // 加载积分
       uni.request({
-        url: buildUrl('/api/points/balance'),
+        url: getApiUrl('/api/points/balance'),
         withCredentials: true,
         success: (res) => {
           console.log('points-balance:', res.data)
@@ -166,7 +166,7 @@ export default {
       
       // 加载收藏
       uni.request({
-        url: buildUrl('/api/favorites'),
+        url: getApiUrl('/api/favorites'),
         withCredentials: true,
         success: (res) => {
           console.log('favorites:', res.data)
@@ -186,7 +186,7 @@ export default {
       
       // 加载观看记录数量
       uni.request({
-        url: buildUrl('/api/playrecords'),
+        url: getApiUrl('/api/playrecords'),
         withCredentials: true,
         success: (res) => {
           console.log('playrecords:', res.data)
@@ -208,7 +208,7 @@ export default {
       
       // 加载卡密信息
       uni.request({
-        url: buildUrl('/api/user/cardkey'),
+        url: getApiUrl('/api/user/cardkey'),
         withCredentials: true,
         success: (res) => {
           console.log('cardkey:', res.data)
@@ -237,7 +237,7 @@ export default {
         success: (modalRes) => {
           if (modalRes.confirm && modalRes.content) {
             uni.request({
-              url: buildUrl('/api/change-password'),
+              url: getApiUrl('/api/change-password'),
               method: 'POST',
               data: { newPassword: modalRes.content },
               withCredentials: true,
