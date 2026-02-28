@@ -35,19 +35,19 @@
                 "screenOrientation" : [ "landscape" ],
                 "schemes" : "lunatv"
             },
-            "ios" : {
-                "idfa" : false,
-                "allowsArbitraryLoads" : true,
-                "screenOrientation" : [ "landscape" ],
-                "dSYMs" : false
-            },
+                "ios" : {
+                    "idfa" : false,
+                    "allowsArbitraryLoads" : true,
+                    "screenOrientation" : [ "landscape" ],
+                    "dSYMs" : false
+                },
             "sdkConfigs" : {},
             "icons" : {
                 "android" : {
-                    "hdpi" : "unpackage/res/icons/72x72.png",
-                    "xhdpi" : "unpackage/res/icons/96x96.png",
-                    "xxhdpi" : "unpackage/res/icons/144x144.png",
-                    "xxxhdpi" : "unpackage/res/icons/192x192.png"
+                    "hdpi" : "static/logo.png",
+                    "xhdpi" : "static/logo.png",
+                    "xxhdpi" : "static/logo.png",
+                    "xxxhdpi" : "static/logo.png"
                 },
                 "ios" : {
                     "appstore" : "unpackage/res/icons/1024x1024.png",
@@ -62,19 +62,16 @@
                         "spotlight" : "unpackage/res/icons/40x40.png",
                         "spotlight@2x" : "unpackage/res/icons/80x80.png"
                     },
-                    "iphone" : {
-                        "app@2x" : "unpackage/res/icons/120x120.png",
-                        "app@3x" : "unpackage/res/icons/180x180.png",
-                        "notification@2x" : "unpackage/res/icons/40x40.png",
-                        "notification@3x" : "unpackage/res/icons/60x60.png",
-                        "settings@2x" : "unpackage/res/icons/58x58.png",
-                        "settings@3x" : "unpackage/res/icons/87x87.png",
-                        "spotlight@2x" : "unpackage/res/icons/80x80.png",
-                        "spotlight@3x" : "unpackage/res/icons/120x120.png"
-                    }
-                }
-            }
-        },
+                "iphone" : {
+                    "app@2x" : "static/logo.png",
+                    "app@3x" : "static/logo.png",
+                    "notification@2x" : "static/logo.png",
+                    "notification@3x" : "static/logo.png",
+                    "settings@2x" : "static/logo.png",
+                    "settings@3x" : "static/logo.png",
+                    "spotlight@2x" : "static/logo.png",
+                    "spotlight@3x" : "static/logo.png"
+                },
         "networkTimeout" : {
             "request" : 30000,
             "connectSocket" : 30000,
