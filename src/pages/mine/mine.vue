@@ -123,9 +123,13 @@ export default {
     }
   },
   onShow() {
+    console.log('[Mine] onShow called')
     this.userInfo = uni.getStorageSync('userInfo')
+    console.log('[Mine] userInfo from storage:', this.userInfo)
     if (this.userInfo) {
       this.loadUserData()
+    } else {
+      console.log('[Mine] user not logged in')
     }
   },
   methods: {
@@ -140,15 +144,22 @@ export default {
       uni.navigateTo({ url: url })
     },
     loadUserData() {
+      console.log('[Mine] loadUserData called')
+      const userCookie = uni.getStorageSync('user_cookie')
+      console.log('[Mine] userCookie:', userCookie)
+      
       // 加载用户统计
       uni.request({
         url: getApiUrl('/api/user/my-stats'),
         withCredentials: true,
         success: (res) => {
-          console.log('my-stats:', res.data)
+          console.log('[Mine] my-stats response:', res.statusCode, res.data)
           if (res.data && !res.data.error) {
             this.playCount = res.data.totalPlays || 0
           }
+        },
+        fail: (err) => {
+          console.log('[Mine] my-stats failed:', err)
         }
       })
       
@@ -157,10 +168,13 @@ export default {
         url: getApiUrl('/api/points/balance'),
         withCredentials: true,
         success: (res) => {
-          console.log('points-balance:', res.data)
+          console.log('[Mine] points-balance response:', res.statusCode, res.data)
           if (res.data && res.data.balance !== undefined) {
             this.points = res.data.balance
           }
+        },
+        fail: (err) => {
+          console.log('[Mine] points-balance failed:', err)
         }
       })
       
@@ -169,7 +183,7 @@ export default {
         url: getApiUrl('/api/favorites'),
         withCredentials: true,
         success: (res) => {
-          console.log('favorites:', res.data)
+          console.log('[Mine] favorites response:', res.statusCode, res.data)
           if (res.data) {
             if (Array.isArray(res.data)) {
               this.favoriteCount = res.data.length
@@ -181,6 +195,9 @@ export default {
               this.favoriteCount = Object.keys(res.data).length
             }
           }
+        },
+        fail: (err) => {
+          console.log('[Mine] favorites failed:', err)
         }
       })
       
@@ -189,7 +206,7 @@ export default {
         url: getApiUrl('/api/playrecords'),
         withCredentials: true,
         success: (res) => {
-          console.log('playrecords:', res.data)
+          console.log('[Mine] playrecords response:', res.statusCode, res.data)
           if (res.data) {
             if (Array.isArray(res.data)) {
               this.playCount = res.data.length
@@ -203,6 +220,9 @@ export default {
               this.playCount = Object.keys(res.data).length
             }
           }
+        },
+        fail: (err) => {
+          console.log('[Mine] playrecords failed:', err)
         }
       })
       
@@ -211,10 +231,13 @@ export default {
         url: getApiUrl('/api/user/cardkey'),
         withCredentials: true,
         success: (res) => {
-          console.log('cardkey:', res.data)
+          console.log('[Mine] cardkey response:', res.statusCode, res.data)
           if (res.data && res.data.hasCardKey && res.data.cardKeyInfo) {
             this.cardKeyInfo = res.data.cardKeyInfo
           }
+        },
+        fail: (err) => {
+          console.log('[Mine] cardkey failed:', err)
         }
       })
     },
