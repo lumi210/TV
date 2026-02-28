@@ -55,7 +55,7 @@
 </template>
 
 <script>
-import { buildUrl } from "../../utils/request"
+import { getApiUrl } from '../../utils/config'
 export default {
   data() {
     return {
@@ -94,21 +94,15 @@ export default {
     proxyImage(url) {
       if (!url || url.startsWith('data:')) return url
       
-      // #ifdef H5
-      // H5 端使用代理避免跨域
+      // 使用图片代理
       if (url.includes('doubanio.com')) {
-        return buildUrl('/api/image-proxy?url=' + encodeURIComponent(url))
+        return getApiUrl('/api/image-proxy?url=' + encodeURIComponent(url))
       }
       if (url.startsWith('http://') || url.startsWith('https://')) {
         if (!url.includes('monkeycode-ai.online') && !url.includes('localhost')) {
-          return buildUrl('/api/image-proxy?url=' + encodeURIComponent(url))
+          return getApiUrl('/api/image-proxy?url=' + encodeURIComponent(url))
         }
       }
-      // #endif
-      
-      // #ifndef H5
-      // APP 端直接使用原始 URL
-      // #endif
       
       return url
     },
@@ -148,7 +142,7 @@ export default {
         
         const res = await new Promise((resolve, reject) => {
           uni.request({
-            url: buildUrl(`/api/douban?type=${this.getDoubanType()}&tag=${this.getTag()}&pageStart=${this.pageStart}&pageSize=${this.pageSize}`),
+            url: getApiUrl(`/api/douban?type=${this.getDoubanType()}&tag=${this.getTag()}&pageStart=${this.pageStart}&pageSize=${this.pageSize}`),
             withCredentials: true,
             success: resolve,
             fail: reject
@@ -214,7 +208,7 @@ export default {
       
       uni.showLoading({ title: '搜索中...' })
       uni.request({
-        url: buildUrl('/api/search?q=' + encodeURIComponent(item.title || item.name)),
+        url: getApiUrl('/api/search?q=' + encodeURIComponent(item.title || item.name)),
         withCredentials: true,
         success: (res) => {
           uni.hideLoading()
