@@ -114,8 +114,10 @@ export default {
     },
     
     onImageError(e, item) {
-      console.log('image load error:', item.title)
+      const originalPoster = item.poster
+      console.log('[More] image load error:', item.title, 'original poster:', originalPoster)
       item.poster = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjgwIiB2aWV3Qm94PSIwIDAgMjAwIDI4MCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyODAiLz48dGV4dCB4PSIxMDAiIHk9IjE0MCIgZmlsbD0iIzg4OCIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+5peg5rSE5Zu+54mHPC90ZXh0Pjwvc3ZnPg=='
+      console.log('[More] replaced with default')
       this.$forceUpdate()
     },
     
@@ -149,7 +151,8 @@ export default {
         })
         
         if (res.statusCode === 200 && res.data && res.data.list) {
-          console.log('[More] API response:', res.data)
+          console.log('[More] API response:', JSON.stringify(res.data).substring(0, 500))
+          console.log('[More] first item from API:', res.data.list[0])
           const items = res.data.list.map(item => ({
             id: item.id,
             title: item.title,
@@ -157,6 +160,7 @@ export default {
             rate: item.rate
           }))
           console.log('[More] mapped items:', items)
+          console.log('[More] first mapped item:', items[0])
           
           if (refresh || this.pageStart === 0) {
             this.list = items
