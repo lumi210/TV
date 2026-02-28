@@ -80,11 +80,15 @@ export default {
     },
     
     getPoster(item) {
+      console.log('[More] getPoster item:', item)
       if (!item.poster && !item.cover && !item.pic) {
+        console.log('[More] no poster, using default')
         return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjgwIiB2aWV3Qm94PSIwIDAgMjAwIDI4MCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyODAiLz48dGV4dCB4PSIxMDAiIHk9IjE0MCIgZmlsbD0iIzg4OCIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+5peg5rSE5Zu+54mHPC90ZXh0Pjwvc3ZnPg=='
       }
       const url = item.poster || item.cover || item.pic
-      return this.proxyImage(url)
+      const proxiedUrl = this.proxyImage(url)
+      console.log('[More] poster url:', url, 'proxied:', proxiedUrl)
+      return proxiedUrl
     },
     
     proxyImage(url) {
@@ -145,12 +149,14 @@ export default {
         })
         
         if (res.statusCode === 200 && res.data && res.data.list) {
+          console.log('[More] API response:', res.data)
           const items = res.data.list.map(item => ({
             id: item.id,
             title: item.title,
             poster: item.poster,
             rate: item.rate
           }))
+          console.log('[More] mapped items:', items)
           
           if (refresh || this.pageStart === 0) {
             this.list = items

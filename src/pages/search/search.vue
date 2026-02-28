@@ -154,11 +154,15 @@ export default {
     },
     
     getPoster(item) {
+      console.log('[Search] getPoster item:', item)
       if (!item.poster && !item.cover && !item.pic) {
+        console.log('[Search] no poster, using default')
         return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNDAiIGhlaWdodD0iMjAwIiB2aWV3Qm94PSIwIDAgMTQwIDIwMCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjE0MCIgaGVpZ2h0PSIyMDAiLz48dGV4dCB4PSI3MCIgeT0iMTAwIiBmaWxsPSIjODg4IiBmb250LXNpemU9IjEyIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIj7ml6DmtITlm77niYc8L3RleHQ+PC9zdmc+'
       }
       const url = item.poster || item.cover || item.pic
-      return this.proxyImage(url)
+      const proxiedUrl = this.proxyImage(url)
+      console.log('[Search] poster url:', url, 'proxied:', proxiedUrl)
+      return proxiedUrl
     },
     
     proxyImage(url) {
@@ -189,8 +193,12 @@ export default {
     
     search() {
       const trimmed = this.keyword.trim()
-      if (!trimmed) return
+      if (!trimmed) {
+        console.log('[Search] keyword is empty')
+        return
+      }
       
+      console.log('[Search] searching for:', trimmed)
       this.loading = true
       this.searched = true
       this.results = []
@@ -212,10 +220,12 @@ export default {
         withCredentials: true,
         header: headers,
         success: (res) => {
+          console.log('[Search] response:', res)
           if (res.statusCode === 200 && res.data && res.data.results) {
             this.results = res.data.results
             this.totalCount = this.results.length
             this.hasMore = this.results.length >= 20
+            console.log('[Search] results count:', this.results.length)
           } else if (res.statusCode === 401) {
             uni.showToast({ title: '请先登录', icon: 'none' })
           } else {
