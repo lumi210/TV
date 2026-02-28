@@ -93,11 +93,11 @@ export default {
       // #ifdef H5
       // H5 端使用代理避免跨域
       if (url.includes('doubanio.com')) {
-        return buildUrl('/api/image-proxy?url=' + encodeURIComponent(url))
+        return getApiUrl('/api/image-proxy?url=' + encodeURIComponent(url))
       }
       if (url.startsWith('http://') || url.startsWith('https://')) {
         if (!url.includes('monkeycode-ai.online') && !url.includes('localhost')) {
-          return buildUrl('/api/image-proxy?url=' + encodeURIComponent(url))
+          return getApiUrl('/api/image-proxy?url=' + encodeURIComponent(url))
         }
       }
       // #endif
