@@ -55,7 +55,7 @@
 </template>
 
 <script>
-import { getApiUrl } from '../../utils/config'
+import { buildUrl } from "../../utils/request"
 export default {
   data() {
     return {
@@ -93,11 +93,11 @@ export default {
       // #ifdef H5
       // H5 端使用代理避免跨域
       if (url.includes('doubanio.com')) {
-        return getApiUrl('/api/image-proxy?url=' + encodeURIComponent(url))
+        return buildUrl('/api/image-proxy?url=' + encodeURIComponent(url))
       }
       if (url.startsWith('http://') || url.startsWith('https://')) {
         if (!url.includes('monkeycode-ai.online') && !url.includes('localhost')) {
-          return getApiUrl('/api/image-proxy?url=' + encodeURIComponent(url))
+          return buildUrl('/api/image-proxy?url=' + encodeURIComponent(url))
         }
       }
       // #endif
@@ -137,7 +137,7 @@ export default {
       try {
         const res = await new Promise((resolve, reject) => {
           uni.request({
-            url: getApiUrl(`/api/douban?type=${this.getDoubanType()}&tag=${this.getTag()}&pageStart=${this.pageStart}&pageSize=${this.pageSize}`),
+            url: buildUrl(`/api/douban?type=${this.getDoubanType()}&tag=${this.getTag()}&pageStart=${this.pageStart}&pageSize=${this.pageSize}`),
             withCredentials: true,
             success: resolve,
             fail: reject
@@ -199,7 +199,7 @@ export default {
       
       uni.showLoading({ title: '搜索中...' })
       uni.request({
-        url: getApiUrl('/api/search?q=' + encodeURIComponent(item.title || item.name)),
+        url: buildUrl('/api/search?q=' + encodeURIComponent(item.title || item.name)),
         withCredentials: true,
         success: (res) => {
           uni.hideLoading()

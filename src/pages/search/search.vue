@@ -208,7 +208,7 @@ export default {
       }
       
       uni.request({
-        url: buildUrl('/api/search?q=') + encodeURIComponent(trimmed),
+        url: buildUrl('/api/search?q=' + encodeURIComponent(trimmed)),
         withCredentials: true,
         header: headers,
         success: (res) => {

@@ -30,5 +30,12 @@ export const getApiUrl = (path) => {
   if (path.startsWith('http')) {
     return path
   }
+  
+  // #ifdef H5
+  return path
+  // #endif
+  
+  // #ifndef H5
   return APP_API_BASE + path
+  // #endif
 }

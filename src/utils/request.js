@@ -4,6 +4,7 @@ export const buildUrl = (url) => {
   if (url.startsWith('http')) {
     return url
   }
+  
   // #ifdef H5
   return url
   // #endif
