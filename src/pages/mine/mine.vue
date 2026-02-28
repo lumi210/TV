@@ -84,14 +84,6 @@
               <text class="arrow">&gt;</text>
             </view>
           </view>
-          </view>
-          <view class="menu-item" @click="goPage('/pages/history/history')">
-            <text>观看历史</text>
-            <view class="item-extra">
-              <text class="item-count" v-if="playCount > 0">{{ playCount }}</text>
-              <text class="arrow">&gt;</text>
-            </view>
-          </view>
         </view>
       </view>
 
