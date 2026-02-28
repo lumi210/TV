@@ -1,7 +1,7 @@
 {
-    "name" : "anytv",
+    "name" : "LunaTV-AndroidTV",
     "appid" : "__UNI__2DCF3DE",
-    "description" : "anytv 影视聚合播放平台移动端应用",
+    "description" : "LunaTV 影视聚合播放平台 - 安卓电视版",
     "versionName" : "1.0.0",
     "versionCode" : "100",
     "transformPx" : false,
@@ -25,16 +25,20 @@
                     "<uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>",
                     "<uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>",
                     "<uses-permission android:name=\"android.permission.WRITE_EXTERNAL_STORAGE\"/>",
-                    "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>"
+                    "<uses-permission android:name=\"android.permission.READ_EXTERNAL_STORAGE\"/>",
+                    "<uses-feature android:name=\"android.software.leanback\" android:required=\"true\"/>",
+                    "<uses-feature android:name=\"android.hardware.touchscreen\" android:required=\"false\"/>",
+                    "<uses-feature android:name=\"android.hardware.wifi\" android:required=\"false\"/>"
                 ],
                 "minSdkVersion" : 21,
                 "targetSdkVersion" : 30,
-                "screenOrientation" : [ "portraitPrimary" ]
+                "screenOrientation" : [ "landscape" ],
+                "schemes" : "lunatv"
             },
             "ios" : {
                 "idfa" : false,
                 "allowsArbitraryLoads" : true,
-                "screenOrientation" : [ "portrait" ],
+                "screenOrientation" : [ "landscape" ],
                 "dSYMs" : false
             },
             "sdkConfigs" : {},
@@ -78,7 +82,7 @@
             "downloadFile" : 30000
         },
         "statusbar" : {
-            "immersed" : true,
+            "immersed" : false,
             "style" : "dark",
             "background" : "#0f0f1a"
         },

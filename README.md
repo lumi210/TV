@@ -1,10 +1,23 @@
-# LunaUniApp
+# LunaUniApp - 安卓电视版
 
-LunaTV 移动端应用 - 基于 UniApp 开发，支持编译为 Android、iOS、H5、微信小程序等多端应用。
+LunaTV 影视播放应用 - 基于 UniApp 开发，支持编译为 Android TV、iOS、H5、微信小程序等多端应用。
+
+本版本专门针对安卓电视进行了优化，支持遥控器导航和大屏幕显示。
 
 ## 项目说明
 
-本项目是 [LunaTV](https://github.com/lumi210/LunaTV) 的配套 UniApp 移动端应用，需要配合 LunaTV 后端服务使用。
+本项目是 [LunaTV](https://github.com/lumi210/LunaTV) 的配套应用，需要配合 LunaTV 后端服务使用。
+
+### 安卓电视版特性
+
+本版本特别优化了以下电视端体验:
+
+- **遥控器导航**: 完美支持电视遥控器方向键和确认键操作
+- **焦点管理**: 智能焦点指示器,清晰的视觉反馈
+- **大屏优化**: 针对电视大屏幕优化的布局和字体大小
+- **横屏显示**: 强制横屏模式,适配电视显示
+- **简化交互**: 去除触摸特有元素,专注遥控器操作
+- **清晰焦点**: 所有可交互元素都有明确的焦点状态
 
 ## 功能特性
 
@@ -182,12 +195,19 @@ VITE_API_URL=http://your-server:3000
 
 ## 打包说明
 
-### Android 打包
+### Android TV 打包
 
 1. 使用 HBuilderX 打开项目
 2. 选择「发行」->「原生App-云打包」
 3. 配置 Android 签名证书
-4. 提交打包
+4. 选择 Android 平台,勾选「支持安卓电视」选项
+5. 提交打包
+
+**注意事项**:
+- 确保在 `nativeResources/android/res/drawable-xhdpi/` 目录下添加 `app_banner.png` 横幅图标(320x180px)
+- 电视应用必须声明 `android.software.leanback` 特性
+- 应用图标和启动图标需符合 Android TV 设计规范
+- 建议在真机或模拟器上测试遥控器导航功能
 
 ### iOS 打包
 
@@ -202,7 +222,23 @@ VITE_API_URL=http://your-server:3000
 2. 打包 APP 需要在 HBuilderX 中进行配置
 3. iOS 打包需要 Apple 开发者账号
 4. 生产环境部署时请修改默认的服务器地址配置
+5. **电视版注意事项**:
+   - 仅支持遥控器操作,不支持触摸交互
+   - 部分移动端特有的手势功能已禁用
+   - 建议使用 1920x1080 或更高分辨率的电视测试
+   - 首次使用建议阅读遥控器操作说明
+   - Android TV 横幅图标必须放在 `nativeResources/android/res/drawable-xhdpi/app_banner.png`
 
 ## License
 
 MIT
+
+## 技术支持
+
+如有问题或建议,请提交 Issue 或 Pull Request。
+
+### 电视版已知问题
+
+- 部分第三方视频播放器可能不支持遥控器控制,建议使用系统播放器
+- 不同品牌电视的遥控器键位可能略有差异
+- 首次启动可能需要较长时间加载资源

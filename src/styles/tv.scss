@@ -1,0 +1,327 @@
+/* 安卓电视专用样式 */
+
+/* 电视大屏幕适配 */
+@media screen and (min-width: 768px) {
+  /* 增大按钮尺寸以适配遥控器操作 */
+  .tv-focusable {
+    transition: all 0.2s ease;
+    outline: none;
+  }
+
+  .tv-focusable:focus {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4rpx rgba(255, 107, 107, 0.6);
+  }
+
+  /* 导航栏适配 */
+  .custom-navbar {
+    height: 100rpx;
+    padding: 0 32rpx;
+  }
+
+  .navbar-title {
+    font-size: 40rpx;
+  }
+
+  .navbar-search {
+    height: 70rpx;
+  }
+
+  /* Hero Banner 适配 */
+  .hero-banner {
+    height: 56.25vw;
+    max-height: 800rpx;
+    min-height: 450rpx;
+  }
+
+  .hero-title {
+    font-size: 48rpx;
+  }
+
+  .hero-btn {
+    padding: 20rpx 48rpx;
+    font-size: 32rpx;
+  }
+
+  /* 视频卡片适配 */
+  .video-card {
+    width: 280rpx;
+  }
+
+  .video-poster-wrap {
+    width: 280rpx;
+    height: 392rpx;
+  }
+
+  .video-title {
+    font-size: 28rpx;
+  }
+
+  /* 章节按钮适配 */
+  .episode-btn {
+    min-width: 140rpx;
+    height: 80rpx;
+    padding: 0 24rpx;
+    font-size: 28rpx;
+  }
+
+  /* 输入框适配 */
+  .input {
+    height: 100rpx;
+    font-size: 32rpx;
+  }
+
+  /* 列表项适配 */
+  .list-item {
+    padding: 32rpx 0;
+  }
+
+  /* 底部导航栏适配 */
+  .tab-bar {
+    height: 120rpx;
+  }
+
+  .tab-bar-item {
+    height: 120rpx;
+  }
+
+  .tab-bar-icon {
+    font-size: 48rpx;
+  }
+
+  .tab-bar-text {
+    font-size: 28rpx;
+  }
+}
+
+@media screen and (min-width: 1024px) {
+  /* 更大的屏幕适配 */
+  .hero-banner {
+    max-height: 900rpx;
+    min-height: 506rpx;
+  }
+
+  .video-card {
+    width: 320rpx;
+  }
+
+  .video-poster-wrap {
+    width: 320rpx;
+    height: 448rpx;
+  }
+
+  .hero-title {
+    font-size: 56rpx;
+  }
+}
+
+/* 焦点管理样式 */
+.tv-focus {
+  transform: scale(1.08);
+  box-shadow: 0 0 0 6rpx rgba(255, 107, 107, 0.8);
+  z-index: 10;
+}
+
+/* 可滚动区域优化 */
+.scroll-x {
+  scroll-behavior: smooth;
+}
+
+/* 加载动画优化 */
+.loading-spinner {
+  width: 60rpx;
+  height: 60rpx;
+}
+
+/* 遥控器导航提示 */
+.tv-nav-hint {
+  position: fixed;
+  bottom: 200rpx;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: #ffffff;
+  padding: 16rpx 32rpx;
+  border-radius: 48rpx;
+  font-size: 24rpx;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 1000;
+
+  &.show {
+    opacity: 1;
+  }
+}
+
+/* 电视端隐藏移动端特有元素 */
+@media screen and (min-width: 768px) {
+  .float-search {
+    display: none;
+  }
+
+  /* 移动端触摸提示隐藏 */
+  .touch-hint {
+    display: none;
+  }
+}
+
+/* 播放页面适配 */
+.player-container {
+  @media screen and (min-width: 768px) {
+    .player-controls {
+      height: 120rpx;
+    }
+
+    .control-btn {
+      width: 80rpx;
+      height: 80rpx;
+      font-size: 40rpx;
+    }
+
+    .progress-bar {
+      height: 8rpx;
+    }
+  }
+}
+
+/* 直播页面适配 */
+.live-channel-list {
+  @media screen and (min-width: 768px) {
+    .channel-item {
+      padding: 24rpx 32rpx;
+    }
+
+    .channel-name {
+      font-size: 32rpx;
+    }
+
+    .channel-logo {
+      width: 120rpx;
+      height: 120rpx;
+    }
+  }
+}
+
+/* 搜索页面适配 */
+.search-page {
+  @media screen and (min-width: 768px) {
+    .search-input {
+      height: 100rpx;
+      font-size: 32rpx;
+    }
+
+    .search-result-item {
+      padding: 32rpx;
+    }
+  }
+}
+
+/* 用户中心页面适配 */
+.mine-page {
+  @media screen and (min-width: 768px) {
+    .user-info {
+      padding: 48rpx 32rpx;
+    }
+
+    .user-avatar {
+      width: 160rpx;
+      height: 160rpx;
+    }
+
+    .user-name {
+      font-size: 40rpx;
+    }
+
+    .menu-item {
+      height: 100rpx;
+      padding: 0 32rpx;
+    }
+
+    .menu-text {
+      font-size: 32rpx;
+    }
+  }
+}
+
+/* 设置页面适配 */
+.settings-page {
+  @media screen and (min-width: 768px) {
+    .setting-item {
+      padding: 32rpx;
+    }
+
+    .setting-label {
+      font-size: 32rpx;
+    }
+
+    .setting-value {
+      font-size: 28rpx;
+    }
+  }
+}
+
+/* 登录注册页面适配 */
+.auth-page {
+  @media screen and (min-width: 768px) {
+    .auth-container {
+      padding: 80rpx 48rpx;
+    }
+
+    .auth-title {
+      font-size: 48rpx;
+    }
+
+    .auth-btn {
+      height: 100rpx;
+      font-size: 36rpx;
+    }
+  }
+}
+
+/* 加载更多按钮 */
+.load-more-btn {
+  width: 400rpx;
+  height: 80rpx;
+  font-size: 28rpx;
+  margin: 32rpx auto;
+
+  @media screen and (min-width: 768px) {
+    width: 500rpx;
+    height: 100rpx;
+    font-size: 32rpx;
+  }
+}
+
+/* 模态框适配 */
+.modal-container {
+  @media screen and (min-width: 768px) {
+    .modal {
+      max-width: 800rpx;
+    }
+
+    .modal-title {
+      font-size: 40rpx;
+    }
+
+    .modal-content {
+      font-size: 32rpx;
+      padding: 32rpx;
+    }
+
+    .modal-btn {
+      height: 90rpx;
+      font-size: 32rpx;
+      min-width: 200rpx;
+    }
+  }
+}
+
+/* Toast 提示适配 */
+.toast {
+  @media screen and (min-width: 768px) {
+    font-size: 32rpx;
+    padding: 24rpx 48rpx;
+    border-radius: 48rpx;
+  }
+}

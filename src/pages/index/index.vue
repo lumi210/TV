@@ -14,9 +14,10 @@
       <swiper 
         class="hero-swiper" 
         :current="currentBanner" 
-        :autoplay="!isSwiping" 
+        :autoplay="!isSwiping && currentBanner !== null" 
         :interval="8000" 
         :duration="800"
+        :focusable="true"
         circular
         @change="onBannerChange"
       >
@@ -77,42 +78,42 @@
       <!-- Quick Categories -->
       <view class="quick-cats">
         <view 
-          class="quick-cat-item" 
+          class="quick-cat-item tv-focusable" 
           :class="{ active: activeCategory === 'all' }"
           @click="activeCategory = 'all'"
         >
           <text>推荐</text>
         </view>
         <view 
-          class="quick-cat-item" 
+          class="quick-cat-item tv-focusable" 
           :class="{ active: activeCategory === 'movie' }"
           @click="activeCategory = 'movie'"
         >
           <text>电影</text>
         </view>
         <view 
-          class="quick-cat-item" 
+          class="quick-cat-item tv-focusable" 
           :class="{ active: activeCategory === 'tv' }"
           @click="activeCategory = 'tv'"
         >
           <text>电视剧</text>
         </view>
         <view 
-          class="quick-cat-item" 
+          class="quick-cat-item tv-focusable" 
           :class="{ active: activeCategory === 'variety' }"
           @click="activeCategory = 'variety'"
         >
           <text>综艺</text>
         </view>
         <view 
-          class="quick-cat-item" 
+          class="quick-cat-item tv-focusable" 
           :class="{ active: activeCategory === 'anime' }"
           @click="activeCategory = 'anime'"
         >
           <text>动漫</text>
         </view>
         <view 
-          class="quick-cat-item" 
+          class="quick-cat-item tv-focusable" 
           :class="{ active: activeCategory === 'shortdrama' }"
           @click="activeCategory = 'shortdrama'"
         >
@@ -128,9 +129,9 @@
             更多 <text class="more-arrow">&#10095;</text>
           </text>
         </view>
-        <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-flex>
-          <view class="video-list">
-            <view class="video-card" v-for="(item, index) in movies" :key="index" @click="searchAndPlay(item)">
+          <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-focus>
+            <view class="video-list">
+              <view class="video-card tv-focusable" v-for="(item, index) in movies" :key="index" @click="searchAndPlay(item)">
               <view class="video-poster-wrap">
                 <image 
                   class="video-poster" 
@@ -159,9 +160,9 @@
             更多 <text class="more-arrow">&#10095;</text>
           </text>
         </view>
-        <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-flex>
-          <view class="video-list">
-            <view class="video-card" v-for="(item, index) in tvShows" :key="index" @click="searchAndPlay(item)">
+          <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-focus>
+            <view class="video-list">
+              <view class="video-card tv-focusable" v-for="(item, index) in tvShows" :key="index" @click="searchAndPlay(item)">
               <view class="video-poster-wrap">
                 <image 
                   class="video-poster" 
@@ -190,9 +191,9 @@
             更多 <text class="more-arrow">&#10095;</text>
           </text>
         </view>
-        <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-flex>
-          <view class="video-list">
-            <view class="video-card" v-for="(item, index) in varietyShows" :key="index" @click="searchAndPlay(item)">
+          <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-focus>
+            <view class="video-list">
+              <view class="video-card tv-focusable" v-for="(item, index) in varietyShows" :key="index" @click="searchAndPlay(item)">
               <view class="video-poster-wrap">
                 <image 
                   class="video-poster" 
@@ -221,9 +222,9 @@
             更多 <text class="more-arrow">&#10095;</text>
           </text>
         </view>
-        <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-flex>
-          <view class="video-list">
-            <view class="video-card" v-for="(item, index) in todayAnimes" :key="index" @click="playBangumi(item)">
+          <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-focus>
+            <view class="video-list">
+              <view class="video-card tv-focusable" v-for="(item, index) in todayAnimes" :key="index" @click="playBangumi(item)">
               <view class="video-poster-wrap">
                 <image 
                   class="video-poster" 
@@ -251,9 +252,9 @@
             更多 <text class="more-arrow">&#10095;</text>
           </text>
         </view>
-        <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-flex>
-          <view class="video-list">
-            <view class="video-card" v-for="(item, index) in shortDramas" :key="index" @click="playShortDrama(item)">
+          <scroll-view scroll-x class="scroll-x" :show-scrollbar="false" enable-focus>
+            <view class="video-list">
+              <view class="video-card tv-focusable" v-for="(item, index) in shortDramas" :key="index" @click="playShortDrama(item)">
               <view class="video-poster-wrap">
                 <image 
                   class="video-poster" 
@@ -682,6 +683,7 @@ export default {
 
 <style lang="scss">
 @import '../../styles/common.scss';
+@import '../../styles/tv.scss';
 
 .page {
   min-height: 100vh;
