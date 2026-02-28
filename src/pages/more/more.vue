@@ -55,7 +55,6 @@
 </template>
 
 <script>
-import { request } from "../../utils/request"
 import { getApiUrl } from '../../utils/config'
 export default {
   data() {
@@ -136,7 +135,14 @@ export default {
       }
       
       try {
-        const res = await request.get(`/api/douban?type=${this.getDoubanType()}&tag=${this.getTag()}&pageStart=${this.pageStart}&pageSize=${this.pageSize}`)
+        const res = await new Promise((resolve, reject) => {
+          uni.request({
+            url: getApiUrl(`/api/douban?type=${this.getDoubanType()}&tag=${this.getTag()}&pageStart=${this.pageStart}&pageSize=${this.pageSize}`),
+            withCredentials: true,
+            success: resolve,
+            fail: reject
+          })
+        })
         
         if (res.statusCode === 200 && res.data && res.data.list) {
           const items = res.data.list.map(item => ({
@@ -192,19 +198,24 @@ export default {
       }
       
       uni.showLoading({ title: '搜索中...' })
-      request.get('/api/search?q=' + encodeURIComponent(item.title || item.name)).then((res) => {
-        uni.hideLoading()
-        if (res.data && res.data.results && res.data.results.length > 0) {
+      uni.request({
+        url: getApiUrl('/api/search?q=' + encodeURIComponent(item.title || item.name)),
+        withCredentials: true,
+        success: (res) => {
+          uni.hideLoading()
+          if (res.data && res.data.results && res.data.results.length > 0) {
           const first = res.data.results[0]
           uni.navigateTo({
             url: '/pages/play/play?title=' + encodeURIComponent(first.title) + '&data=' + encodeURIComponent(JSON.stringify(first))
           })
-        } else {
-          uni.showToast({ title: '未找到播放源', icon: 'none' })
+          } else {
+            uni.showToast({ title: '未找到播放源', icon: 'none' })
+          }
+        },
+        fail: () => {
+          uni.hideLoading()
+          uni.showToast({ title: '搜索失败', icon: 'none' })
         }
-      }).catch(() => {
-        uni.hideLoading()
-        uni.showToast({ title: '搜索失败', icon: 'none' })
       })
     },
     
