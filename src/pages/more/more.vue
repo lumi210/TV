@@ -141,6 +141,11 @@ export default {
       }
       
       try {
+        const userInfo = uni.getStorageSync('userInfo')
+        console.log('[More] userInfo:', userInfo)
+        const userCookie = uni.getStorageSync('user_cookie')
+        console.log('[More] userCookie:', userCookie)
+        
         const res = await new Promise((resolve, reject) => {
           uni.request({
             url: buildUrl(`/api/douban?type=${this.getDoubanType()}&tag=${this.getTag()}&pageStart=${this.pageStart}&pageSize=${this.pageSize}`),

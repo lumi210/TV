@@ -396,7 +396,7 @@ export default {
     },
     
     onImageError(e, item) {
-      console.log('image load error:', item.title, item.poster)
+      console.log('[Index] image load error:', item.title, 'poster was:', item.poster)
       item.poster = 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMDAiIGhlaWdodD0iMjgwIiB2aWV3Qm94PSIwIDAgMjAwIDI4MCI+PHJlY3QgZmlsbD0iIzFhMWEyZSIgd2lkdGg9IjIwMCIgaGVpZ2h0PSIyODAiLz48dGV4dCB4PSIxMDAiIHk9IjE0MCIgZmlsbD0iIzg4OCIgZm9udC1zaXplPSIxNCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZG9taW5hbnQtYmFzZWxpbmU9Im1pZGRsZSI+5peg5rSE5Zu+54mHPC90ZXh0Pjwvc3ZnPg=='
       this.$forceUpdate()
     },
@@ -504,7 +504,9 @@ export default {
           url: getApiUrl('/api/douban?type=movie&tag=%E7%83%AD%E9%97%A8&pageStart=0&pageSize=12'),
           withCredentials: true,
           success: (res) => {
+            console.log('[Index] loadMovies response:', res.statusCode, res.data?.list?.length)
             if (res.statusCode === 200 && res.data && res.data.list) {
+              console.log('[Index] first movie item:', res.data.list[0])
               this.movies = res.data.list.map(item => ({
                 id: item.id,
                 title: item.title,
@@ -512,6 +514,7 @@ export default {
                 rate: item.rate,
                 year: item.year
               }))
+              console.log('[Index] mapped movies[0]:', this.movies[0])
               resolve('success')
             } else {
               resolve('error')
