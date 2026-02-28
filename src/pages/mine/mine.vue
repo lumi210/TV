@@ -32,15 +32,15 @@
         
         <view class="stats">
           <view class="stat-item" @click="goPage('/pages/points/points')">
-            <text class="stat-value">{{ points }}</text>
+            <text class="stat-value">{{ points || 0 }}</text>
             <text class="stat-label">积分</text>
           </view>
           <view class="stat-item" @click="goPage('/pages/favorites/favorites')">
-            <text class="stat-value">{{ favoriteCount }}</text>
+            <text class="stat-value">{{ favoriteCount || 0 }}</text>
             <text class="stat-label">收藏</text>
           </view>
           <view class="stat-item" @click="goPage('/pages/history/history')">
-            <text class="stat-value">{{ playCount }}</text>
+            <text class="stat-value">{{ playCount || 0 }}</text>
             <text class="stat-label">观看</text>
           </view>
         </view>
@@ -76,6 +76,14 @@
               <text class="item-count" v-if="favoriteCount > 0">{{ favoriteCount }}</text>
               <text class="arrow">&gt;</text>
             </view>
+          </view>
+          <view class="menu-item" @click="goPage('/pages/history/history')">
+            <text>观看历史</text>
+            <view class="item-extra">
+              <text class="item-count" v-if="playCount > 0">{{ playCount }}</text>
+              <text class="arrow">&gt;</text>
+            </view>
+          </view>
           </view>
           <view class="menu-item" @click="goPage('/pages/history/history')">
             <text>观看历史</text>
@@ -125,8 +133,14 @@ export default {
   onShow() {
     console.log('[Mine] onShow called')
     this.userInfo = uni.getStorageSync('userInfo')
-    console.log('[Mine] userInfo from storage:', this.userInfo)
-    if (this.userInfo) {
+      console.log('[Mine] userInfo from storage:', this.userInfo)
+      console.log('[Mine] current data state:', {
+        points: this.points,
+        favoriteCount: this.favoriteCount,
+        playCount: this.playCount,
+        cardKeyInfo: this.cardKeyInfo
+      })
+      if (this.userInfo) {
       this.loadUserData()
     } else {
       console.log('[Mine] user not logged in')
@@ -154,8 +168,10 @@ export default {
         withCredentials: true,
         success: (res) => {
           console.log('[Mine] my-stats response:', res.statusCode, res.data)
-          if (res.data && !res.data.error) {
+          console.log('[Mine] totalPlays:', res.data?.totalPlays)
+          if (res.statusCode === 200 && res.data) {
             this.playCount = res.data.totalPlays || 0
+            console.log('[Mine] set playCount to:', this.playCount)
           }
         },
         fail: (err) => {
@@ -169,8 +185,10 @@ export default {
         withCredentials: true,
         success: (res) => {
           console.log('[Mine] points-balance response:', res.statusCode, res.data)
-          if (res.data && res.data.balance !== undefined) {
-            this.points = res.data.balance
+          console.log('[Mine] balance:', res.data?.balance)
+          if (res.statusCode === 200 && res.data) {
+            this.points = res.data.balance || 0
+            console.log('[Mine] set points to:', this.points)
           }
         },
         fail: (err) => {
