@@ -10,8 +10,9 @@ export default defineConfig({
     allowedHosts: ['.monkeycode-ai.online', 'all'],
     proxy: {
       '/api': {
-        target: 'http://127.0.0.1:3000',
-        changeOrigin: true
+        target: 'https://any.lumi210.ggff.net',
+        changeOrigin: true,
+        secure: true
       },
       '/shortdrama-api': {
         target: 'https://wwzy.tv',

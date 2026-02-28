@@ -126,16 +126,16 @@
         "router" : {
             "mode" : "hash"
         },
-        "devServer" : {
-            "port" : 5173,
-            "host" : "0.0.0.0",
-            "proxy" : {
-                "/api" : {
-                    "target" : "http://127.0.0.1:3000",
-                    "changeOrigin" : true
+            "devServer" : {
+                "port" : 5173,
+                "host" : "0.0.0.0",
+                "proxy" : {
+                    "/api" : {
+                        "target" : "https://any.lumi210.ggff.net",
+                        "changeOrigin" : true
+                    }
                 }
-            }
-        },
+            },
         "publicPath" : "./",
         "optimization" : {
             "treeShaking" : {

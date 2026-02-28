@@ -7,7 +7,7 @@ export const config = {
   }
 }
 
-export const APP_API_BASE = 'http://47.113.227.252:3000'
+export const APP_API_BASE = 'https://any.lumi210.ggff.net'
 
 export const setBaseUrl = (url) => {
   config.baseUrl = url
